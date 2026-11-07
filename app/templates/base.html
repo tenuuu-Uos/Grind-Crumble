@@ -52,20 +52,25 @@
                     <a href="/network" class="px-3 py-1.5 rounded-lg font-medium transition {% if active_page == 'network' %}text-slate-900 font-bold bg-slate-100{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}">
                         Scoreboard
                     </a>
+                    <a href="/qa" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center space-x-1.5 {% if active_page == 'qa' %}text-slate-900 font-bold bg-slate-100{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}">
+                        <i data-lucide="sparkles" class="w-4 h-4 text-amber-600"></i>
+                        <span>AI Q&amp;A</span>
+                    </a>
                     <a href="/stores/new" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center space-x-1.5 {% if active_page == 'new_store' %}text-slate-900 font-bold bg-slate-100{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}">
                         <i data-lucide="plus-circle" class="w-4 h-4 text-slate-700"></i>
                         <span>Add Store</span>
                     </a>
                     <a href="/upload" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center space-x-1.5 {% if active_page == 'upload' %}text-slate-900 font-bold bg-slate-100{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}">
-                        <i data-lucide="sparkles" class="w-4 h-4 text-amber-600"></i>
-                        <span>Upload &amp; AI</span>
+                        <i data-lucide="upload-cloud" class="w-4 h-4 text-slate-700"></i>
+                        <span>Upload Data</span>
                     </a>
                     <a href="/instructions" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center space-x-1.5 {% if active_page == 'instructions' %}text-slate-900 font-bold bg-slate-100{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}">
                         <i data-lucide="book-open" class="w-4 h-4 text-slate-700"></i>
                         <span>Staff Guide</span>
                     </a>
-                    <a href="/settings" class="px-3 py-1.5 rounded-lg font-medium transition {% if active_page == 'settings' %}text-slate-900 font-bold bg-slate-100{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}">
-                        Settings
+                    <a href="/settings" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center space-x-1.5 {% if active_page == 'settings' %}text-slate-900 font-bold bg-slate-100{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}">
+                        <i data-lucide="settings" class="w-4 h-4 text-slate-700"></i>
+                        <span>Settings</span>
                     </a>
                 </nav>
 

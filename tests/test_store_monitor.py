@@ -148,5 +148,36 @@ class TestStoreHealthMonitor(unittest.TestCase):
         self.assertIn("hull paragon", q3["answer"].lower())
         self.assertIn("waste", q3["answer"].lower())
 
+    def test_qa_page_template(self):
+        from app.main import qa_page
+        req = make_request("/qa")
+        resp = qa_page(req)
+        self.assertEqual(resp.status_code, 200)
+        body = resp.body.decode("utf-8")
+        self.assertIn("AI Operational Q&amp;A", body)
+        self.assertIn("chatThread", body)
+        self.assertIn("qaInput", body)
+        self.assertIn("Common Operational Inquiries", body)
+
+    def test_qa_uses_settings_api_key(self):
+        # Configure a test key in settings
+        orig = get_settings().get("gemini_api_key", "")
+        update_settings({"gemini_api_key": "test_dummy_key_123"})
+        self.assertEqual(get_settings()["gemini_api_key"], "test_dummy_key_123")
+
+        # Ask a data question and verify it detects and uses the key
+        res = DataManager.ask_data_question("Which stores lost money on delivery last month?")
+        self.assertIn("answer", res)
+        self.assertTrue(res.get("key_used", False))
+
+        # Restore
+        update_settings({"gemini_api_key": orig})
+
+    def test_settings_gemini_api_key_persistence(self):
+        orig = get_settings().get("gemini_api_key", "")
+        update_settings({"gemini_api_key": "AIzaSyDummyKeyForTesting"})
+        self.assertEqual(get_settings()["gemini_api_key"], "AIzaSyDummyKeyForTesting")
+        update_settings({"gemini_api_key": orig})
+
 if __name__ == "__main__":
     unittest.main()

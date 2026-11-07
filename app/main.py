@@ -156,6 +156,26 @@ def create_new_store(
             status_code=303
         )
 
+@app.get("/qa", response_class=HTMLResponse)
+@app.get("/ai-qa", response_class=HTMLResponse)
+def qa_page(request: Request):
+    """Dedicated AI Operational Q&A workspace."""
+    settings = get_settings()
+    cards = DataManager.get_all_store_cards()
+    has_api_key = bool(settings.get("gemini_api_key", "").strip())
+
+    return templates.TemplateResponse(
+        request=request,
+        name="qa.html",
+        context={
+            "settings": settings,
+            "has_api_key": has_api_key,
+            "stores": cards,
+            "active_page": "qa",
+            "title": "AI Q&A - Grind & Crumb Store Health Monitor"
+        }
+    )
+
 @app.get("/api/explain-store/{store_id}")
 def api_explain_store(store_id: str):
     """Feature 1: Returns plain-English diagnosis and recommended actions for a store."""
@@ -168,10 +188,22 @@ async def api_ask_question(request: Request):
     try:
         body = await request.json()
         question = body.get("question", "")
+        api_key = body.get("api_key", "")
     except Exception:
         question = ""
-    result = DataManager.ask_data_question(question)
+        api_key = ""
+    result = DataManager.ask_data_question(question, api_key=api_key)
     return result
+
+@app.post("/api/test-key")
+async def api_test_key(request: Request):
+    """Tests connectivity to Google Gemini using the provided or saved API key."""
+    try:
+        body = await request.json()
+        api_key = body.get("api_key", "")
+    except Exception:
+        api_key = ""
+    return DataManager.test_gemini_connection(api_key=api_key)
 
 @app.get("/instructions", response_class=HTMLResponse)
 def instructions_page(request: Request):

@@ -12,6 +12,10 @@
                     <i data-lucide="plus" class="w-3.5 h-3.5 text-amber-600"></i>
                     <span>Add Store</span>
                 </a>
+                <a href="/qa" class="text-xs font-semibold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200/90 rounded-lg px-2.5 py-1 flex items-center space-x-1.5 shadow-sm transition">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-600"></i>
+                    <span>AI Q&amp;A Tab &rarr;</span>
+                </a>
             </div>
             <p class="text-sm text-slate-500 mt-1">Real-time store performance, profit margin trends, food waste, and peak rush staffing.</p>
         </div>
@@ -38,61 +42,6 @@
                 <button onclick="filterStores('amber')" id="btn-amber" class="px-3 py-1.5 rounded-lg font-semibold text-amber-800 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition">Watch ({{ amber_count }})</button>
                 <button onclick="filterStores('green')" id="btn-green" class="px-3 py-1.5 rounded-lg font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition">Optimal ({{ green_count }})</button>
             </div>
-        </div>
-    </div>
-
-    <!-- Gemini AI Operational Q&A Chat Box -->
-    <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-2.5">
-                <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-700 flex items-center justify-center font-bold">
-                    <i data-lucide="sparkles" class="w-4 h-4 text-amber-600"></i>
-                </div>
-                <div>
-                    <div class="flex items-center space-x-2">
-                        <h2 class="text-base font-bold text-slate-900">Ask Gemini AI (Store Operations Q&amp;A)</h2>
-                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold uppercase tracking-wider">Gemini Powered</span>
-                    </div>
-                    <p class="text-xs text-slate-500">Ask any free-form question about delivery profitability, store margins, food waste, footfall trends, or staffing.</p>
-                </div>
-            </div>
-            <a href="/settings" class="text-[11px] font-semibold text-slate-500 hover:text-slate-800 flex items-center space-x-1">
-                <i data-lucide="settings" class="w-3.5 h-3.5"></i>
-                <span>API Settings</span>
-            </a>
-        </div>
-
-        <!-- Input Box -->
-        <form onsubmit="handleAskQuestion(event)" class="flex flex-col sm:flex-row gap-2">
-            <div class="relative flex-1">
-                <input type="text" id="chatQuestionInput" placeholder="Ask Gemini anything, e.g. Which stores lost money on delivery last month? or Why did Leeds Briggate profit drop?" 
-                       class="w-full px-4 py-2.5 pr-10 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-slate-900 bg-slate-50/50">
-            </div>
-            <button type="submit" id="btn-chat-submit" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-lg transition flex items-center justify-center space-x-2 shrink-0">
-                <i data-lucide="sparkles" class="w-4 h-4 text-amber-400" id="chat-send-icon"></i>
-                <span>Ask Gemini</span>
-            </button>
-        </form>
-
-        <!-- Suggested Prompt Chips -->
-        <div class="flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
-            <span class="text-slate-400 font-medium">Try asking:</span>
-            <button onclick="setAndAskQuestion('Which stores lost money on delivery last month?')" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 transition text-slate-700">“Which stores lost money on delivery last month?”</button>
-            <button onclick="setAndAskQuestion('Why did Leeds Briggate profit drop?')" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 transition text-slate-700">“Why did Leeds Briggate profit drop?”</button>
-            <button onclick="setAndAskQuestion('Why is Hull Paragon waste so high?')" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 transition text-slate-700">“Why is Hull Paragon waste so high?”</button>
-            <button onclick="setAndAskQuestion('What caused the app sales drop in March?')" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 transition text-slate-700">“What caused the app sales drop in March?”</button>
-        </div>
-
-        <!-- Answer Card -->
-        <div id="chatAnswerContainer" class="hidden p-4 rounded-lg bg-amber-50/60 border border-amber-200/90 text-sm leading-relaxed text-slate-800 space-y-2">
-            <div class="flex items-center justify-between text-xs font-bold text-amber-900 uppercase tracking-wider">
-                <div class="flex items-center space-x-1.5">
-                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-600"></i>
-                    <span>Gemini AI Answer:</span>
-                </div>
-                <span id="chatEngineBadge" class="text-[10px] text-amber-800 bg-amber-200/60 px-2 py-0.5 rounded font-mono">Gemini AI</span>
-            </div>
-            <div id="chatAnswerText" class="text-slate-800 whitespace-pre-line text-sm"></div>
         </div>
     </div>
 
@@ -242,49 +191,6 @@
 
         cards.forEach(c => grid.appendChild(c));
         applyFilter();
-    }
-
-    // Ask-a-Question Chat Handler
-    async function handleAskQuestion(e) {
-        if (e) e.preventDefault();
-        const input = document.getElementById('chatQuestionInput');
-        const question = input.value.trim();
-        if (!question) return;
-
-        const container = document.getElementById('chatAnswerContainer');
-        const answerText = document.getElementById('chatAnswerText');
-        const submitBtn = document.getElementById('btn-chat-submit');
-        const icon = document.getElementById('chat-send-icon');
-
-        container.classList.remove('hidden');
-        answerText.innerHTML = '<span class="text-slate-500 italic flex items-center space-x-1.5"><i data-lucide="sparkles" class="w-4 h-4 text-amber-500 animate-spin"></i><span>Gemini AI is analyzing operational data...</span></span>';
-        if (submitBtn) submitBtn.disabled = true;
-
-        try {
-            const resp = await fetch('/api/ask', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question: question })
-            });
-            const data = await resp.json();
-            const badge = document.getElementById('chatEngineBadge');
-            if (badge) {
-                badge.innerText = data.engine === 'gemini-ai' ? 'Gemini 1.5 Flash' : 'Grounded AI Engine';
-            }
-            answerText.innerHTML = data.answer.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        } catch (err) {
-            answerText.innerText = "Error querying store data: " + err;
-        } finally {
-            if (submitBtn) submitBtn.disabled = false;
-        }
-    }
-
-    function setAndAskQuestion(q) {
-        const input = document.getElementById('chatQuestionInput');
-        if (input) {
-            input.value = q;
-            handleAskQuestion();
-        }
     }
 </script>
 {% endblock %}

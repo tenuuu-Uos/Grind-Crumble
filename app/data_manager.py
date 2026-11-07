@@ -1,12 +1,19 @@
 import os
 import io
 import json
+import ssl
 import urllib.request
 import urllib.error
+import certifi
 import pandas as pd
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from app.config import DATA_DIR, get_settings
+
+try:
+    import httpx
+except ImportError:
+    httpx = None
 
 AI_INSIGHTS_FILE = DATA_DIR / "ai_store_insights.json"
 
@@ -515,16 +522,31 @@ Return ONLY valid JSON.
         }
 
         try:
-            req = urllib.request.Request(
-                url,
-                data=json.dumps(payload).encode("utf-8"),
-                headers={"Content-Type": "application/json"}
-            )
-            with urllib.request.urlopen(req, timeout=12.0) as resp:
-                resp_data = json.loads(resp.read().decode("utf-8"))
-                text_out = resp_data["candidates"][0]["content"]["parts"][0]["text"]
-                parsed_json = json.loads(text_out)
-                
+            parsed_json = None
+            if httpx:
+                with httpx.Client(timeout=15.0) as client:
+                    resp = client.post(url, json=payload, headers={"Content-Type": "application/json"})
+                    if resp.status_code == 200:
+                        resp_data = resp.json()
+                        text_out = resp_data["candidates"][0]["content"]["parts"][0]["text"]
+                        parsed_json = json.loads(text_out)
+            else:
+                ssl_context = None
+                try:
+                    ssl_context = ssl.create_default_context(cafile=certifi.where())
+                except Exception:
+                    pass
+                req = urllib.request.Request(
+                    url,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"}
+                )
+                with urllib.request.urlopen(req, timeout=15.0, context=ssl_context) as resp:
+                    resp_data = json.loads(resp.read().decode("utf-8"))
+                    text_out = resp_data["candidates"][0]["content"]["parts"][0]["text"]
+                    parsed_json = json.loads(text_out)
+
+            if parsed_json:
                 current_insights = cls.get_ai_insights()
                 current_insights.update(parsed_json)
                 cls.save_ai_insights(current_insights)
@@ -650,12 +672,26 @@ Do not use markdown headers, just plain text.
                 "generationConfig": {"temperature": 0.2, "maxOutputTokens": 200}
             }
             try:
-                req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"})
-                with urllib.request.urlopen(req, timeout=8.0) as resp:
-                    resp_data = json.loads(resp.read().decode("utf-8"))
-                    ai_text = resp_data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                    if ai_text:
-                        summary = ai_text
+                if httpx:
+                    with httpx.Client(timeout=8.0) as client:
+                        resp = client.post(url, json=payload, headers={"Content-Type": "application/json"})
+                        if resp.status_code == 200:
+                            resp_data = resp.json()
+                            ai_text = resp_data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                            if ai_text:
+                                summary = ai_text
+                else:
+                    ssl_context = None
+                    try:
+                        ssl_context = ssl.create_default_context(cafile=certifi.where())
+                    except Exception:
+                        pass
+                    req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"})
+                    with urllib.request.urlopen(req, timeout=8.0, context=ssl_context) as resp:
+                        resp_data = json.loads(resp.read().decode("utf-8"))
+                        ai_text = resp_data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                        if ai_text:
+                            summary = ai_text
             except Exception:
                 pass # Use rule-based summary
 
@@ -669,11 +705,52 @@ Do not use markdown headers, just plain text.
         }
 
     @classmethod
-    def ask_data_question(cls, question: str) -> Dict[str, Any]:
+    def test_gemini_connection(cls, api_key: str = "") -> Dict[str, Any]:
+        """Tests whether a Gemini API key is valid by sending a minimal ping."""
+        key = (api_key or "").strip() or get_settings().get("gemini_api_key", "").strip() or os.environ.get("GEMINI_API_KEY", "").strip()
+        if not key:
+            return {"valid": False, "message": "No API key configured. Enter a Gemini API key in Settings."}
+
+        models_to_test = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
+        last_error = "Unknown error"
+        for model in models_to_test:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+            payload = {
+                "contents": [{"parts": [{"text": "Reply with 'Connected successfully'"}]}],
+                "generationConfig": {"temperature": 0.0, "maxOutputTokens": 20}
+            }
+            try:
+                if httpx:
+                    with httpx.Client(timeout=10.0) as client:
+                        resp = client.post(url, json=payload, headers={"Content-Type": "application/json"})
+                        if resp.status_code == 200:
+                            return {"valid": True, "model": model, "message": f"Successfully connected to Google Gemini ({model}) using Settings API key!"}
+                        else:
+                            try:
+                                err_data = resp.json()
+                                last_error = err_data.get("error", {}).get("message", f"HTTP {resp.status_code}")
+                            except Exception:
+                                last_error = f"HTTP {resp.status_code}"
+                else:
+                    ssl_context = None
+                    try:
+                        ssl_context = ssl.create_default_context(cafile=certifi.where())
+                    except Exception:
+                        pass
+                    req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"})
+                    with urllib.request.urlopen(req, timeout=10.0, context=ssl_context) as resp:
+                        return {"valid": True, "model": model, "message": f"Successfully connected to Google Gemini ({model}) using Settings API key!"}
+            except Exception as e:
+                last_error = str(e)
+
+        return {"valid": False, "message": f"Gemini connection failed: {last_error}"}
+
+    @classmethod
+    def ask_data_question(cls, question: str, api_key: Optional[str] = None) -> Dict[str, Any]:
         """
         AI-Powered Operational Q&A:
         Passes the question along with comprehensive store data and operational records to Google Gemini API
-        to answer any natural language question given by managers.
+        using the API key configured in Settings (or passed directly).
         Includes intelligent grounded analytical fallback if API key is not present or offline.
         """
         q = question.strip()
@@ -685,14 +762,15 @@ Do not use markdown headers, just plain text.
         stores_df = data["stores"]
         cards = cls.get_all_store_cards()
 
-        # Check Gemini API Key
+        # Check Gemini API Key: priority is passed api_key -> settings.json -> os.environ
         settings = get_settings()
-        key = settings.get("gemini_api_key", "").strip() or os.environ.get("GEMINI_API_KEY", "").strip()
+        key = (api_key or "").strip() or settings.get("gemini_api_key", "").strip() or os.environ.get("GEMINI_API_KEY", "").strip()
 
         # Build comprehensive real data context for Gemini
         latest_m = pnl_df["month"].max() if not pnl_df.empty else "2026-06"
         prev_m = sorted(pnl_df["month"].unique())[-2] if not pnl_df.empty and len(pnl_df["month"].unique()) > 1 else latest_m
 
+        gemini_error = None
         # 1. Try Gemini API first so Gemini answers any question given
         if key:
             cards_summary = [
@@ -747,29 +825,70 @@ INSTRUCTIONS:
 - Format key terms with markdown bold (**like this**). Do not use top-level markdown headers (#), keep it readable for store managers.
 """
 
-            # Support gemini-1.5-flash / gemini-2.0-flash
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
-            payload = {
-                "contents": [{"parts": [{"text": system_context}]}],
-                "generationConfig": {"temperature": 0.2, "maxOutputTokens": 600}
-            }
+            models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
+            for model_name in models_to_try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
+                payload = {
+                    "contents": [{"parts": [{"text": system_context}]}],
+                    "generationConfig": {"temperature": 0.2, "maxOutputTokens": 800}
+                }
 
-            try:
-                req = urllib.request.Request(
-                    url,
-                    data=json.dumps(payload).encode("utf-8"),
-                    headers={"Content-Type": "application/json"}
-                )
-                with urllib.request.urlopen(req, timeout=12.0) as resp:
-                    resp_data = json.loads(resp.read().decode("utf-8"))
-                    answer = resp_data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                    if answer:
-                        return {"question": question, "answer": answer, "engine": "gemini-ai"}
-            except Exception as e:
-                # If network or API key error, continue to comprehensive data fallback
-                pass
+                try:
+                    if httpx:
+                        with httpx.Client(timeout=15.0) as client:
+                            resp = client.post(url, json=payload, headers={"Content-Type": "application/json"})
+                            if resp.status_code == 200:
+                                resp_data = resp.json()
+                                candidates = resp_data.get("candidates", [])
+                                if candidates:
+                                    parts = candidates[0].get("content", {}).get("parts", [])
+                                    if parts and "text" in parts[0]:
+                                        answer = parts[0]["text"].strip()
+                                        if answer:
+                                            return {
+                                                "question": question,
+                                                "answer": answer,
+                                                "engine": "gemini-ai",
+                                                "model": model_name,
+                                                "key_used": True
+                                            }
+                            else:
+                                try:
+                                    err_json = resp.json()
+                                    gemini_error = err_json.get("error", {}).get("message", f"HTTP {resp.status_code}")
+                                except Exception:
+                                    gemini_error = f"HTTP {resp.status_code}"
+                    else:
+                        ssl_context = None
+                        try:
+                            ssl_context = ssl.create_default_context(cafile=certifi.where())
+                        except Exception:
+                            pass
+                        req = urllib.request.Request(
+                            url,
+                            data=json.dumps(payload).encode("utf-8"),
+                            headers={"Content-Type": "application/json"}
+                        )
+                        with urllib.request.urlopen(req, timeout=15.0, context=ssl_context) as resp:
+                            resp_data = json.loads(resp.read().decode("utf-8"))
+                            answer = resp_data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                            if answer:
+                                return {
+                                    "question": question,
+                                    "answer": answer,
+                                    "engine": "gemini-ai",
+                                    "model": model_name,
+                                    "key_used": True
+                                }
+                except Exception as e:
+                    gemini_error = str(e)
 
-        # 2. Comprehensive Grounded Operational Analysis Engine (if API key not yet entered)
+        # 2. Comprehensive Grounded Operational Analysis Engine (if API key not yet entered or fallback)
+        note_suffix = ""
+        if key and gemini_error:
+            note_suffix = f"\n\n*(Note: Gemini API key from Settings was active, but API request returned: {gemini_error}. Answering with verified chain operational data).*"
+        elif not key:
+            note_suffix = "\n\n*(Tip: Add your Google Gemini API Key in Settings to enable live generative AI responses).*"
         ql = q.lower()
         if "delivery" in ql and any(w in ql for w in ["loss", "lost", "unprofitable", "losing", "money", "margin"]):
             latest_pnl = pnl_df[pnl_df["month"] == latest_m].copy()
@@ -785,43 +904,46 @@ INSTRUCTIONS:
                 answer = f"In {latest_m}, delivery orders were unprofitable at: {stores_list}. High aggregator commissions (30-33%), packaging (£0.45/bag), and dedicated barista packing labour make low-ticket delivery orders lose money at smaller kiosk footprints."
             else:
                 answer = f"In {latest_m}, all locations maintained positive delivery margins, though Kiosk formats like **Sheffield Uni Campus (S11)** operated with near-zero margins due to Dashly's 33% commission."
-            return {"question": question, "answer": answer, "engine": "grounded-engine"}
+            return {"question": question, "answer": answer + note_suffix, "engine": "grounded-engine", "key_used": bool(key)}
 
         if "leeds briggate" in ql or ("leeds" in ql and any(w in ql for w in ["drop", "fall", "why", "profit", "margin"])):
             answer = "**Leeds Briggate (S03)** profit experienced a steep decline primarily driven by three factors:\n\n1. **Local Cannibalisation**: The launch of **Leeds Trinity (S12)** just 0.4 miles away diverted high-street footfall and lunchtime trade.\n2. **App Redesign Shock (March 2026)**: When App v3.0 rolled out with checkout errors, Leeds Briggate's app sales plummeted by **43.5%** (£8,212 down to £4,638).\n3. **National Living Wage Increase**: Raised monthly labour costs to £20,320, depressing margin from 19.5% to 12.6%."
-            return {"question": question, "answer": answer, "engine": "grounded-engine"}
+            return {"question": question, "answer": answer + note_suffix, "engine": "grounded-engine", "key_used": bool(key)}
 
         if "hull" in ql and any(w in ql for w in ["waste", "why", "drop", "profit"]):
             answer = "**Hull Paragon (S10)** food waste is running at **21.5%** of food revenue (£1,438/month discarded), which is **2.4× the chain benchmark (9.0%)**.\n\n**Cause**: Inaccurate morning bake-off pars and an 8% drop in Hull city-centre footfall leading to excess unsold fresh inventory.\n\n**Action**: Enforce dynamic par scaling tied to morning footfall sensors and require daily shift supervisor waste sign-offs."
-            return {"question": question, "answer": answer, "engine": "grounded-engine"}
+            return {"question": question, "answer": answer + note_suffix, "engine": "grounded-engine", "key_used": bool(key)}
 
         if "piccadilly" in ql or "manchester piccadilly" in ql:
             answer = "**Manchester Piccadilly (S07)** generated £99,794 in revenue but posted an operating loss of **-£1,736 (-1.7% margin)**.\n\n**Cause**: Fixed rent and rates cost **£37,210/month (37.3% of revenue)** against a 25% safe ceiling, plus a lunchtime deficit of **-2.2 baristas** causing walkouts.\n\n**Action**: Maximize grab-and-go transaction velocity and initiate turnover-linked lease renegotiations."
-            return {"question": question, "answer": answer, "engine": "grounded-engine"}
+            return {"question": question, "answer": answer + note_suffix, "engine": "grounded-engine", "key_used": bool(key)}
 
         if "app" in ql and any(w in ql for w in ["drop", "collapse", "march", "crash", "bug"]):
             answer = "In **March 2026**, the rollout of **App v3.0** caused chain-wide mobile app orders to plunge by **35% to 45%** across all 12 stores due to checkout glitches and reward wallet errors. App orders began recovering following the **App v3.1 hotfix** on April 13, 2026."
-            return {"question": question, "answer": answer, "engine": "grounded-engine"}
+            return {"question": question, "answer": answer + note_suffix, "engine": "grounded-engine", "key_used": bool(key)}
 
         if any(w in ql for w in ["highest waste", "most waste", "worst waste"]):
             worst_waste = sorted(cards, key=lambda x: x["waste_pct"], reverse=True)[:3]
             items = [f"**{c['store_name']}** ({c['waste_pct']}%, £{c['waste_cost_gbp']:,} cost)" for c in worst_waste]
             answer = f"The 3 stores with the highest food waste are:\n\n1. {items[0]}\n2. {items[1]}\n3. {items[2]}\n\nThe chain benchmark is 9.0%. Hull Paragon is the primary operational priority."
-            return {"question": question, "answer": answer, "engine": "grounded-engine"}
+            return {"question": question, "answer": answer + note_suffix, "engine": "grounded-engine", "key_used": bool(key)}
 
         if any(w in ql for w in ["best", "highest margin", "most profitable", "top store"]):
             top_stores = sorted(cards, key=lambda x: x["margin_this_month"], reverse=True)[:3]
             items = [f"**{c['store_name']}** ({c['margin_this_month']}% margin, £{c['store_profit_gbp']:,} profit)" for c in top_stores]
             answer = f"The top 3 most profitable locations are:\n\n1. {items[0]}\n2. {items[1]}\n3. {items[2]}\n\nBoth Sheffield Division Street and York Stonegate benefit from manageable rent commitments and strict labour par management."
-            return {"question": question, "answer": answer, "engine": "grounded-engine"}
+            return {"question": question, "answer": answer + note_suffix, "engine": "grounded-engine", "key_used": bool(key)}
 
         if any(w in ql for w in ["staff", "rota", "understaff", "gap"]):
             gaps = [c for c in cards if c["peak_staff_gap"] < 0]
             gaps_sorted = sorted(gaps, key=lambda x: x["peak_staff_gap"])
             items = [f"**{c['store_name']}** ({c['peak_staff_gap']} baristas deficit, {c['peak_staff_on_shift']} on shift)" for c in gaps_sorted[:4]]
             answer = f"{len(gaps)} stores currently face counter deficits during the 11:00-14:00 lunch rush:\n\n" + "\n".join([f"- {i}" for i in items]) + "\n\n**Action**: Reschedule prep shifts before 11:00am so all staff are on customer-facing assembly during peak volume."
-            return {"question": question, "answer": answer, "engine": "grounded-engine"}
+            return {"question": question, "answer": answer + note_suffix, "engine": "grounded-engine", "key_used": bool(key)}
 
         # Dynamic fallback across the entire network
-        answer = f"Grind & Crumb monitors {len(cards)} stores. You can ask any question about store performance, delivery costs, waste rates, or staffing. (Add your Gemini API Key in Settings to enable free-form natural language answers to any custom question)."
-        return {"question": question, "answer": answer, "engine": "grounded-engine"}
+        if key:
+            answer = f"Grind & Crumb monitors {len(cards)} stores across Northern England with real-time operational data.\n\n*(Gemini API note: request with Settings key returned: {gemini_error or 'Connection offline'}. Try asking about store delivery margins, Hull Paragon waste, Leeds Briggate cannibalisation, or peak rush staffing).*"
+        else:
+            answer = f"Grind & Crumb monitors {len(cards)} stores across Northern England. You can ask any question about store performance, delivery costs, waste rates, or staffing. (Add your Gemini API Key in Settings to enable free-form natural language answers to any custom question)."
+        return {"question": question, "answer": answer, "engine": "grounded-engine", "key_used": bool(key)}
