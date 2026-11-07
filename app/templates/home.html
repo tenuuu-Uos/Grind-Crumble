@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Bar -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
+        <div>
+            <h1 class="text-lg font-bold text-slate-900 tracking-tight">12 Store Locations</h1>
+            <p class="text-xs text-slate-500">Real-time store performance, profit margin trends, food waste, and peak rush staffing.</p>
+        </div>
+
+        <!-- Filter -->
+        <div class="flex items-center space-x-1.5 text-xs">
+            <button onclick="filterStores('all')" id="btn-all" class="px-2.5 py-1 rounded font-medium bg-slate-900 text-white transition">All (12)</button>
+            <button onclick="filterStores('red')" id="btn-red" class="px-2.5 py-1 rounded font-medium text-rose-700 bg-rose-50 border border-rose-200/70 hover:bg-rose-100 transition">Action ({{ red_count }})</button>
+            <button onclick="filterStores('amber')" id="btn-amber" class="px-2.5 py-1 rounded font-medium text-amber-700 bg-amber-50 border border-amber-200/70 hover:bg-amber-100 transition">Watch ({{ amber_count }})</button>
+            <button onclick="filterStores('green')" id="btn-green" class="px-2.5 py-1 rounded font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/70 hover:bg-emerald-100 transition">Optimal ({{ green_count }})</button>
+        </div>
+    </div>
+
+    <!-- 12-Store Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="store-grid">
+        {% for s in stores %}
+        <a href="/store/{{ s.store_id }}" class="store-card block bg-white rounded-lg border border-slate-200 p-4 relative group" data-status="{{ s.rag_status }}">
+            
+            <!-- Store Title & Badge -->
+            <div class="flex items-start justify-between gap-2 mb-2">
+                <div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{{ s.store_id }} &bull; {{ s.format }}</span>
+                    <h2 class="text-sm font-bold text-slate-900 group-hover:text-amber-700 transition leading-snug">
+                        {{ s.store_name }}
+                    </h2>
+                    <span class="text-[11px] text-slate-500">{{ s.city }} &bull; {{ s.manager }}</span>
+                </div>
+
+                {% if s.rag_status == 'red' %}
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold rag-badge-red shrink-0">Action</span>
+                {% elif s.rag_status == 'amber' %}
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold rag-badge-amber shrink-0">Watch</span>
+                {% else %}
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold rag-badge-green shrink-0">Optimal</span>
+                {% endif %}
+            </div>
+
+            <!-- Plain-Language Operational Alert -->
+            <div class="mb-3 p-2 rounded text-[11px] font-medium leading-relaxed {% if s.rag_status == 'red' %}bg-rose-50/70 text-rose-900 border border-rose-100{% elif s.rag_status == 'amber' %}bg-amber-50/70 text-amber-900 border border-amber-100{% else %}bg-slate-50 text-slate-600 border border-slate-100{% endif %} flex items-start space-x-1.5">
+                <i data-lucide="{% if s.rag_status == 'red' %}alert-circle{% elif s.rag_status == 'amber' %}alert-triangle{% else %}check{% endif %}" class="w-3.5 h-3.5 mt-0.5 shrink-0 {% if s.rag_status == 'red' %}text-rose-600{% elif s.rag_status == 'amber' %}text-amber-600{% else %}text-emerald-600{% endif %}"></i>
+                <div>
+                    <span>{{ s.plain_alert }}</span>
+                    {% if s.is_ai_generated %}
+                    <span class="inline-block ml-1 text-[9px] px-1 rounded bg-amber-100 text-amber-800 font-bold uppercase">Gemini AI</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 4 Metrics Row -->
+            <div class="grid grid-cols-4 gap-2 pt-2 border-t border-slate-100 text-left">
+                
+                <!-- Margin -->
+                <div>
+                    <div class="text-[10px] text-slate-400">
+                        <span class="tooltip-wrap">Margin<span class="tooltip-box">Operating profit divided by revenue. Floor: &ge; {{ settings.margin_floor_pct }}%.</span></span>
+                    </div>
+                    <div class="text-xs font-bold {% if s.margin_this_month < settings.margin_floor_pct %}text-rose-600{% else %}text-slate-900{% endif %}">
+                        {{ s.margin_this_month }}%
+                    </div>
+                    <div class="text-[9px] text-slate-400">
+                        ({% if s.margin_delta > 0 %}+{% endif %}{{ s.margin_delta }}%)
+                    </div>
+                </div>
+
+                <!-- Waste % -->
+                <div>
+                    <div class="text-[10px] text-slate-400">
+                        <span class="tooltip-wrap">Waste<span class="tooltip-box">Cost of food discarded divided by food sales. Limit: &le; {{ settings.waste_benchmark_pct }}%.</span></span>
+                    </div>
+                    <div class="text-xs font-bold {% if s.waste_pct > settings.waste_benchmark_pct %}text-rose-600{% else %}text-emerald-700{% endif %}">
+                        {{ s.waste_pct }}%
+                    </div>
+                    <div class="text-[9px] text-slate-400">
+                        target &le;{{ settings.waste_benchmark_pct }}%
+                    </div>
+                </div>
+
+                <!-- Delivery % -->
+                <div>
+                    <div class="text-[10px] text-slate-400">
+                        <span class="tooltip-wrap">Delivery<span class="tooltip-box">Share of store sales coming from Dashly and RushEats delivery apps.</span></span>
+                    </div>
+                    <div class="text-xs font-bold text-slate-900">
+                        {{ s.delivery_share_pct }}%
+                    </div>
+                    <div class="text-[9px] text-slate-400">of sales</div>
+                </div>
+
+                <!-- Staffing Gap -->
+                <div>
+                    <div class="text-[10px] text-slate-400">
+                        <span class="tooltip-wrap">Peak Gap<span class="tooltip-box">Difference between active counter baristas and baristas needed during 11am-2pm rush. Negative = deficit.</span></span>
+                    </div>
+                    <div class="text-xs font-bold {% if s.peak_staff_gap <= -1.5 %}text-rose-600{% elif s.peak_staff_gap < 0 %}text-amber-700{% else %}text-emerald-700{% endif %}">
+                        {% if s.peak_staff_gap < 0 %}{{ s.peak_staff_gap }}{% else %}0{% endif %}
+                    </div>
+                    <div class="text-[9px] text-slate-400">{{ s.peak_staff_on_shift }} on shift</div>
+                </div>
+
+            </div>
+
+        </a>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function filterStores(status) {
+        ['all', 'red', 'amber', 'green'].forEach(s => {
+            const btn = document.getElementById(`btn-${s}`);
+            if (btn) btn.className = 'px-2.5 py-1 rounded font-medium text-slate-600 hover:text-slate-900 transition';
+        });
+        const activeBtn = document.getElementById(`btn-${status}`);
+        if (activeBtn) {
+            activeBtn.className = 'px-2.5 py-1 rounded font-medium bg-slate-900 text-white transition';
+        }
+        document.querySelectorAll('.store-card').forEach(card => {
+            card.style.display = (status === 'all' || card.getAttribute('data-status') === status) ? 'block' : 'none';
+        });
+    }
+</script>
+{% endblock %}

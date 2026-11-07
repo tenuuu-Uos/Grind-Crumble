@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header -->
+    <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-xl font-bold text-slate-900">Network Overview (12 Store Ranking)</h1>
+            <p class="text-xs text-slate-500 mt-0.5">
+                Comparative chain ranking across profit margin, food waste rate, occupancy ratio, and delivery channel mix.
+            </p>
+        </div>
+        <a href="/" class="text-xs font-semibold text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg border border-slate-300 bg-slate-50">
+            &larr; Back to 12 Store Cards Grid
+        </a>
+    </div>
+
+    <!-- Comparative Table -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-xs text-left divide-y divide-slate-200">
+                <thead class="bg-slate-50 font-bold text-slate-700 uppercase tracking-wider text-[11px]">
+                    <tr>
+                        <th class="py-3 px-4">Store</th>
+                        <th class="py-3 px-4">City & Format</th>
+                        <th class="py-3 px-4 text-right">
+                            <span class="tooltip-wrap">Monthly Sales (£)<span class="tooltip-box">Total monthly store revenue net of VAT.</span></span>
+                        </th>
+                        <th class="py-3 px-4 text-right">
+                            <span class="tooltip-wrap">Net Profit (£)<span class="tooltip-box">Store operating profit after all prime costs, rent, rates, and opex.</span></span>
+                        </th>
+                        <th class="py-3 px-4 text-right">
+                            <span class="tooltip-wrap">Store Margin<span class="tooltip-box">Operating profit divided by total net revenue. Target floor: &ge; {{ settings.margin_floor_pct }}%.</span></span>
+                        </th>
+                        <th class="py-3 px-4 text-right">
+                            <span class="tooltip-wrap">Waste %<span class="tooltip-box">Food waste cost divided by food revenue. Benchmark limit: &le; {{ settings.waste_benchmark_pct }}%.</span></span>
+                        </th>
+                        <th class="py-3 px-4 text-right">
+                            <span class="tooltip-wrap">Occupancy %<span class="tooltip-box">Monthly Rent + Business Rates divided by total sales. Ceiling: &le; {{ settings.occupancy_ceiling_pct }}%.</span></span>
+                        </th>
+                        <th class="py-3 px-4 text-right">
+                            <span class="tooltip-wrap">Delivery %<span class="tooltip-box">Share of monthly sales from delivery apps.</span></span>
+                        </th>
+                        <th class="py-3 px-4 text-center">Peak Staff Gap</th>
+                        <th class="py-3 px-4 text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for s in stores %}
+                    <tr class="hover:bg-slate-50/80 transition {% if s.rag_status == 'red' %}bg-rose-50/30{% endif %}">
+                        <td class="py-3 px-4 font-bold text-slate-900">
+                            <a href="/store/{{ s.store_id }}" class="hover:text-amber-700 flex items-center space-x-1.5">
+                                <span>{{ s.store_name }}</span>
+                                <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-slate-400"></i>
+                            </a>
+                        </td>
+                        <td class="py-3 px-4 text-slate-500">{{ s.city }} &bull; {{ s.format }}</td>
+                        <td class="py-3 px-4 text-right font-mono font-medium">£{{ s.total_sales_gbp|num }}</td>
+                        <td class="py-3 px-4 text-right font-mono font-bold {% if s.store_profit_gbp < 0 %}text-rose-600{% else %}text-slate-900{% endif %}">
+                            £{{ s.store_profit_gbp|num }}
+                        </td>
+                        <td class="py-3 px-4 text-right font-bold {% if s.margin_this_month < settings.margin_floor_pct %}text-rose-600{% else %}text-emerald-700{% endif %}">
+                            {{ s.margin_this_month }}%
+                        </td>
+                        <td class="py-3 px-4 text-right font-semibold {% if s.waste_pct > settings.waste_benchmark_pct %}text-rose-600{% else %}text-slate-700{% endif %}">
+                            {{ s.waste_pct }}%
+                        </td>
+                        <td class="py-3 px-4 text-right font-medium {% if s.occupancy_pct > settings.occupancy_ceiling_pct %}text-rose-600 font-bold{% else %}text-slate-600{% endif %}">
+                            {{ s.occupancy_pct }}%
+                        </td>
+                        <td class="py-3 px-4 text-right font-medium text-slate-600">{{ s.delivery_share_pct }}%</td>
+                        <td class="py-3 px-4 text-center">
+                            {% if s.peak_staff_gap < 0 %}
+                            <span class="text-rose-600 font-bold">{{ s.peak_staff_gap }} staff</span>
+                            {% else %}
+                            <span class="text-slate-500 font-medium">Balanced</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            {% if s.rag_status == 'red' %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider rag-badge-red">Action</span>
+                            {% elif s.rag_status == 'amber' %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider rag-badge-amber">Watch</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider rag-badge-green">OK</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

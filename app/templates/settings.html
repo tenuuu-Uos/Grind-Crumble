@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+
+    <div class="border-b border-slate-200/80 pb-3">
+        <h1 class="text-lg font-bold text-slate-900 tracking-tight">Threshold Settings</h1>
+        <p class="text-xs text-slate-500 mt-0.5">Edit operational limits and connect your Gemini API key. Values persist in <code class="bg-slate-100 text-slate-700 px-1 py-0.5 rounded">settings.json</code>.</p>
+    </div>
+
+    {% if message %}
+    <div class="p-3 rounded-lg bg-emerald-50 text-emerald-900 border border-emerald-200 text-xs flex items-center space-x-2">
+        <i data-lucide="check" class="w-4 h-4 text-emerald-600"></i>
+        <span>{{ message }}</span>
+    </div>
+    {% endif %}
+
+    <form method="POST" action="/settings" class="bg-white rounded-lg border border-slate-200 p-5 space-y-4">
+        
+        <!-- Gemini API Key -->
+        <div>
+            <div class="flex items-center justify-between">
+                <label for="gemini_api_key" class="text-xs font-semibold text-slate-900 flex items-center space-x-1">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-600"></i>
+                    <span>Google Gemini API Key</span>
+                </label>
+                <span class="text-[10px] text-slate-400">Optional</span>
+            </div>
+            <input type="password" name="gemini_api_key" id="gemini_api_key" value="{{ settings.gemini_api_key or '' }}" placeholder="AIzaSy..." class="mt-1 w-full px-3 py-1.5 border border-slate-200 rounded text-xs font-mono focus:outline-none focus:border-slate-900">
+            <p class="text-[10px] text-slate-400 mt-1">Used during CSV uploads to analyze store patterns and write actionable alerts.</p>
+        </div>
+
+        <hr class="border-slate-100">
+
+        <!-- Waste Benchmark -->
+        <div class="flex items-center justify-between">
+            <div>
+                <label for="waste_benchmark_pct" class="text-xs font-semibold text-slate-900 block">Food Waste Limit (%)</label>
+                <span class="text-[11px] text-slate-400">Chain benchmark (Default: 9.0%)</span>
+            </div>
+            <div class="flex items-center space-x-1">
+                <input type="number" step="0.1" name="waste_benchmark_pct" id="waste_benchmark_pct" value="{{ settings.waste_benchmark_pct }}" class="w-20 px-2 py-1 border border-slate-200 rounded text-xs text-right font-semibold">
+                <span class="text-xs text-slate-500">%</span>
+            </div>
+        </div>
+
+        <hr class="border-slate-100">
+
+        <!-- Margin Floor -->
+        <div class="flex items-center justify-between">
+            <div>
+                <label for="margin_floor_pct" class="text-xs font-semibold text-slate-900 block">Operating Margin Floor (%)</label>
+                <span class="text-[11px] text-slate-400">Minimum healthy margin (Default: 10.0%)</span>
+            </div>
+            <div class="flex items-center space-x-1">
+                <input type="number" step="0.1" name="margin_floor_pct" id="margin_floor_pct" value="{{ settings.margin_floor_pct }}" class="w-20 px-2 py-1 border border-slate-200 rounded text-xs text-right font-semibold">
+                <span class="text-xs text-slate-500">%</span>
+            </div>
+        </div>
+
+        <hr class="border-slate-100">
+
+        <!-- Occupancy Ceiling -->
+        <div class="flex items-center justify-between">
+            <div>
+                <label for="occupancy_ceiling_pct" class="text-xs font-semibold text-slate-900 block">Fixed Occupancy Ceiling (%)</label>
+                <span class="text-[11px] text-slate-400">Rent + rates share of revenue (Default: 25.0%)</span>
+            </div>
+            <div class="flex items-center space-x-1">
+                <input type="number" step="0.1" name="occupancy_ceiling_pct" id="occupancy_ceiling_pct" value="{{ settings.occupancy_ceiling_pct }}" class="w-20 px-2 py-1 border border-slate-200 rounded text-xs text-right font-semibold">
+                <span class="text-xs text-slate-500">%</span>
+            </div>
+        </div>
+
+        <div class="pt-3 flex justify-end space-x-2">
+            <button type="submit" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded transition">
+                Save Settings
+            </button>
+        </div>
+
+    </form>
+
+</div>
+{% endblock %}

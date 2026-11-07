@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title or "Grind & Crumb Store Health Monitor" }}</title>
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            500: '#d97706',
+                            900: '#0f172a'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="bg-[#fafafa] text-slate-900 min-h-screen flex flex-col antialiased text-sm">
+
+    <!-- Minimal Header -->
+    <header class="bg-white border-b border-slate-200/80 sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6">
+            <div class="flex items-center justify-between h-14">
+                
+                <!-- Logo -->
+                <a href="/" class="flex items-center space-x-2">
+                    <div class="w-6 h-6 rounded bg-slate-900 text-white flex items-center justify-center font-bold text-xs">
+                        <i data-lucide="coffee" class="w-3.5 h-3.5"></i>
+                    </div>
+                    <span class="font-bold text-sm tracking-tight text-slate-900">Grind &amp; Crumb</span>
+                    <span class="text-xs text-slate-400 font-normal">/ Store Health</span>
+                </a>
+
+                <!-- Nav -->
+                <nav class="flex items-center space-x-1 sm:space-x-3 text-xs">
+                    <a href="/" class="px-2.5 py-1 rounded font-medium transition {% if active_page == 'home' %}text-slate-900 font-semibold bg-slate-100{% else %}text-slate-500 hover:text-slate-900{% endif %}">
+                        Stores
+                    </a>
+                    <a href="/network" class="px-2.5 py-1 rounded font-medium transition {% if active_page == 'network' %}text-slate-900 font-semibold bg-slate-100{% else %}text-slate-500 hover:text-slate-900{% endif %}">
+                        Network
+                    </a>
+                    <a href="/upload" class="px-2.5 py-1 rounded font-medium transition flex items-center space-x-1 {% if active_page == 'upload' %}text-slate-900 font-semibold bg-slate-100{% else %}text-slate-500 hover:text-slate-900{% endif %}">
+                        <i data-lucide="sparkles" class="w-3 h-3 text-amber-600"></i>
+                        <span>Upload &amp; AI</span>
+                    </a>
+                    <a href="/settings" class="px-2.5 py-1 rounded font-medium transition {% if active_page == 'settings' %}text-slate-900 font-semibold bg-slate-100{% else %}text-slate-500 hover:text-slate-900{% endif %}">
+                        Settings
+                    </a>
+                </nav>
+
+            </div>
+        </div>
+    </header>
+
+    <!-- Main -->
+    <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Minimal Footer -->
+    <footer class="border-t border-slate-200/60 py-4 text-xs text-slate-400">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-1">
+            <span>Grind &amp; Crumb Ltd &bull; Store-First Operations Command</span>
+            <span>Targets: Waste &le; {{ settings.waste_benchmark_pct }}% &bull; Margin &ge; {{ settings.margin_floor_pct }}% &bull; Occupancy &le; {{ settings.occupancy_ceiling_pct }}%</span>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

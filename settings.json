@@ -1,0 +1,8 @@
+{
+  "waste_benchmark_pct": 9.0,
+  "margin_floor_pct": 10.0,
+  "occupancy_ceiling_pct": 25.0,
+  "sub8_threshold_gbp": 8.0,
+  "drinks_per_barista_hour": 16.5,
+  "gemini_api_key": ""
+}

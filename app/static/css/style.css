@@ -1,0 +1,82 @@
+/* Minimalist Design for Grind & Crumb Store Health Monitor */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    letter-spacing: -0.01em;
+}
+
+/* Tooltip Hover */
+.tooltip-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: help;
+    border-bottom: 1px dotted #94a3b8;
+}
+
+.tooltip-wrap .tooltip-box {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    bottom: 130%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 220px;
+    background-color: #0f172a;
+    color: #f8fafc;
+    text-align: left;
+    font-size: 11px;
+    line-height: 1.4;
+    padding: 7px 9px;
+    border-radius: 6px;
+    z-index: 50;
+    transition: opacity 0.15s ease-in-out;
+    pointer-events: none;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.tooltip-wrap .tooltip-box::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -4px;
+    border-width: 4px;
+    border-style: solid;
+    border-color: #0f172a transparent transparent transparent;
+}
+
+.tooltip-wrap:hover .tooltip-box {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Store Cards */
+.store-card {
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.store-card:hover {
+    border-color: #0f172a;
+    box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.06);
+}
+
+/* Badges */
+.rag-badge-red {
+    background-color: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fee2e2;
+}
+
+.rag-badge-amber {
+    background-color: #fffbeb;
+    color: #92400e;
+    border: 1px solid #fef3c7;
+}
+
+.rag-badge-green {
+    background-color: #f0fdf4;
+    color: #166534;
+    border: 1px solid #dcfce7;
+}

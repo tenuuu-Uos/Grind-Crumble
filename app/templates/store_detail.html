@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Breadcrumb & Navigation -->
+    <div class="flex items-center justify-between">
+        <a href="/" class="text-xs font-semibold text-slate-500 hover:text-slate-900 flex items-center space-x-1">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            <span>Back to 12 Store Grid</span>
+        </a>
+        <div class="text-xs text-slate-400">
+            Store ID: <span class="font-bold text-slate-700">{{ card.store_id }}</span>
+        </div>
+    </div>
+
+    <!-- Store Profile Header -->
+    <div class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">{{ card.format }} Format &bull; {{ card.city }}</span>
+                {% if card.rag_status == 'red' %}
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider rag-badge-red">Needs Action</span>
+                {% elif card.rag_status == 'amber' %}
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider rag-badge-amber">Watchlist</span>
+                {% else %}
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider rag-badge-green">Healthy</span>
+                {% endif %}
+            </div>
+            <h1 class="text-2xl font-black text-slate-900 mt-1">{{ card.store_name }}</h1>
+            <p class="text-xs text-slate-500 mt-0.5">
+                Store Manager: <strong>{{ card.manager }}</strong> &bull; Monthly Sales: <strong>£{{ card.total_sales_gbp|num }}</strong> &bull; Net Profit: <strong>£{{ card.store_profit_gbp|num }}</strong>
+            </p>
+        </div>
+
+        <!-- Store Metric Quick Badges -->
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+            <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                <span class="text-[11px] text-slate-500 block">
+                    <span class="tooltip-wrap">Store Margin<span class="tooltip-box">Operating profit divided by total net revenue.</span></span>
+                </span>
+                <span class="text-base font-bold {% if card.margin_this_month < settings.margin_floor_pct %}text-rose-600{% else %}text-slate-900{% endif %}">
+                    {{ card.margin_this_month }}%
+                </span>
+            </div>
+            <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                <span class="text-[11px] text-slate-500 block">
+                    <span class="tooltip-wrap">Waste Rate<span class="tooltip-box">Cost of food discarded divided by food revenue.</span></span>
+                </span>
+                <span class="text-base font-bold {% if card.waste_pct > settings.waste_benchmark_pct %}text-rose-600{% else %}text-emerald-700{% endif %}">
+                    {{ card.waste_pct }}%
+                </span>
+            </div>
+            <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                <span class="text-[11px] text-slate-500 block">
+                    <span class="tooltip-wrap">Occupancy %<span class="tooltip-box">Rent + Rates as a share of sales. Alert if &gt; 25%.</span></span>
+                </span>
+                <span class="text-base font-bold {% if card.occupancy_pct > settings.occupancy_ceiling_pct %}text-rose-600{% else %}text-slate-900{% endif %}">
+                    {{ card.occupancy_pct }}%
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plain-Language Operational Alerts Box -->
+    <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center mb-2">
+            <i data-lucide="bell-ring" class="w-4 h-4 text-amber-600 mr-1.5"></i>
+            <span>Plain-Language Operational Alerts (Ops Action Points)</span>
+        </h3>
+        <div class="space-y-2 text-xs font-medium">
+            <div class="p-3 rounded-lg {% if card.rag_status == 'red' %}bg-rose-50 border border-rose-200 text-rose-950{% elif card.rag_status == 'amber' %}bg-amber-50 border border-amber-200 text-amber-950{% else %}bg-emerald-50 border border-emerald-200 text-emerald-950{% endif %} flex items-start space-x-2">
+                <i data-lucide="{% if card.rag_status == 'red' %}alert-circle{% else %}info{% endif %}" class="w-4 h-4 shrink-0 mt-0.5 {% if card.rag_status == 'red' %}text-rose-600{% else %}text-amber-600{% endif %}"></i>
+                <div class="space-y-1">
+                    <p class="font-bold">{{ card.plain_alert }}</p>
+                    {% for a in card.alerts_list %}
+                    <p class="text-slate-700">&bull; {{ a }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- P&L Waterfall / Profit Breakdown -->
+    <div class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h3 class="text-base font-bold text-slate-900">Store Profit Breakdown (P&L Waterfall)</h3>
+                <p class="text-xs text-slate-500">Itemized revenue deduction waterfall from total sales down to net operating profit</p>
+            </div>
+            <span class="text-xs text-slate-400">Net of VAT</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-xs text-left divide-y divide-slate-200">
+                <thead class="bg-slate-50 font-semibold text-slate-600">
+                    <tr>
+                        <th class="py-2.5 px-4">Line Item</th>
+                        <th class="py-2.5 px-4 text-right">Amount (£)</th>
+                        <th class="py-2.5 px-4 text-right">Share of Revenue (%)</th>
+                        <th class="py-2.5 px-4">Category Impact</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for item in pnl_waterfall %}
+                    <tr class="{% if item.type == 'profit' %}bg-emerald-50/50 font-bold{% elif item.type == 'loss' %}bg-rose-50/60 font-bold{% elif item.label == 'Total Sales (Net)' %}bg-slate-50/80 font-bold{% endif %}">
+                        <td class="py-2.5 px-4 font-medium text-slate-900">{{ item.label }}</td>
+                        <td class="py-2.5 px-4 text-right font-mono font-semibold {% if item.amount < 0 %}text-rose-600{% elif item.type == 'profit' %}text-emerald-700{% else %}text-slate-900{% endif %}">
+                            {% if item.amount > 0 and item.type != 'positive' %}+{% endif %}£{{ item.amount|num }}
+                        </td>
+                        <td class="py-2.5 px-4 text-right text-slate-600 font-mono">{{ item.pct }}%</td>
+                        <td class="py-2.5 px-4 w-48">
+                            <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                                <div class="{% if item.amount < 0 %}bg-rose-500{% elif item.type == 'profit' %}bg-emerald-600{% else %}bg-slate-800{% endif %} h-2 rounded-full" style="width: {{ [item.pct, 100]|min }}%;"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Charts Grid: Waste Trend + Sales-Channel Mix -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Chart 1: 12-Month Waste Trend -->
+        <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <h3 class="text-sm font-bold text-slate-900">Waste Trend vs 9% Benchmark</h3>
+                    <span class="text-xs font-semibold px-2 py-0.5 rounded {% if card.waste_pct > settings.waste_benchmark_pct %}bg-rose-100 text-rose-800{% else %}bg-emerald-100 text-emerald-800{% endif %}">
+                        Current: {{ card.waste_pct }}%
+                    </span>
+                </div>
+                <p class="text-xs text-slate-500 mb-3">Historical monthly food waste % tracked against the chain benchmark</p>
+                <div class="h-56">
+                    <canvas id="storeWasteTrendChart"></canvas>
+                </div>
+            </div>
+            <div class="mt-3 pt-2 border-t border-slate-100 text-[11px] text-slate-400">
+                Target: Keep waste below {{ settings.waste_benchmark_pct }}% to protect food gross margins.
+            </div>
+        </div>
+
+        <!-- Chart 2: Channel Mix -->
+        <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <h3 class="text-sm font-bold text-slate-900">Sales Channel Mix</h3>
+                    <span class="text-xs font-semibold text-slate-500">In-Store vs App vs Delivery</span>
+                </div>
+                <p class="text-xs text-slate-500 mb-3">Revenue split by order channel</p>
+                <div class="h-56">
+                    <canvas id="storeChannelMixChart"></canvas>
+                </div>
+            </div>
+            <div class="mt-3 pt-2 border-t border-slate-100 flex justify-between text-[11px] text-slate-600">
+                <span>In-Store: <strong>{{ channel_mix.percentages[0] }}%</strong></span>
+                <span>Direct App: <strong>{{ channel_mix.percentages[1] }}%</strong></span>
+                <span>Delivery: <strong>{{ channel_mix.percentages[2] }}%</strong></span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 11:00-14:00 Lunchtime Staffing Heatmap / Gap -->
+    <div class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+            <div>
+                <h3 class="text-base font-bold text-slate-900">11:00 – 14:00 Lunchtime Staffing & Queue Heatmap</h3>
+                <p class="text-xs text-slate-500">Hour-by-hour customer door count vs counter barista capacity</p>
+            </div>
+            <div class="text-xs font-semibold px-2.5 py-1 rounded-lg {% if card.peak_staff_gap <= -1.0 %}bg-rose-100 text-rose-800 border border-rose-200{% else %}bg-emerald-100 text-emerald-800{% endif %}">
+                {% if card.peak_staff_gap < 0 %}Deficit: {{ card.peak_staff_gap }} Staff at Peak{% else %}Staffing Balanced{% endif %}
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-xs text-left divide-y divide-slate-200">
+                <thead class="bg-slate-50 font-semibold text-slate-600">
+                    <tr>
+                        <th class="py-2.5 px-4">Time Window</th>
+                        <th class="py-2.5 px-4 text-right">Door Footfall (People)</th>
+                        <th class="py-2.5 px-4 text-right">Active Staff on Shift</th>
+                        <th class="py-2.5 px-4 text-right">Staff Needed at Peak</th>
+                        <th class="py-2.5 px-4 text-center">Bottleneck Status</th>
+                        <th class="py-2.5 px-4">Walkout Risk Level</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for h in staffing_hours %}
+                    <tr class="{% if 'CRITICAL' in h.status %}bg-rose-50/50 font-semibold{% endif %}">
+                        <td class="py-3 px-4 font-bold text-slate-900">{{ h.hour }}</td>
+                        <td class="py-3 px-4 text-right font-mono">{{ h.footfall }}</td>
+                        <td class="py-3 px-4 text-right font-mono">{{ h.active_staff }}</td>
+                        <td class="py-3 px-4 text-right font-mono font-bold {% if h.needed_staff > h.active_staff %}text-rose-600{% endif %}">{{ h.needed_staff }}</td>
+                        <td class="py-3 px-4 text-center">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold {% if 'CRITICAL' in h.status %}bg-rose-100 text-rose-800 border border-rose-200{% elif h.status == 'Tight' %}bg-amber-100 text-amber-800{% else %}bg-slate-100 text-slate-700{% endif %}">
+                                {{ h.status }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 text-slate-600">
+                            {% if 'High' in h.walkout_risk %}
+                            <span class="text-rose-600 font-bold flex items-center">
+                                <i data-lucide="alert-triangle" class="w-3.5 h-3.5 mr-1"></i>
+                                {{ h.walkout_risk }}
+                            </span>
+                            {% else %}
+                            <span>{{ h.walkout_risk }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-4 p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600">
+            <strong>Ops Context:</strong> When queues exceed 5 customers deep during 12:00-13:00, walkout rates rise significantly. Adding 1 flex barista during the 1-hour peak recovers ~£180–£350/day in captured beverage sales.
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Chart 1: Waste Trend
+    const wasteData = {{ waste_trend|tojson }};
+    const ctxWaste = document.getElementById('storeWasteTrendChart');
+    if (ctxWaste && wasteData.length) {
+        new Chart(ctxWaste, {
+            type: 'line',
+            data: {
+                labels: wasteData.map(d => d.month.slice(5)),
+                datasets: [
+                    {
+                        label: 'Store Waste %',
+                        data: wasteData.map(d => d.waste_pct),
+                        borderColor: '#e11d48',
+                        backgroundColor: 'rgba(225, 29, 72, 0.1)',
+                        fill: true,
+                        tension: 0.25,
+                        pointRadius: 4
+                    },
+                    {
+                        label: 'Chain Benchmark (9%)',
+                        data: wasteData.map(d => d.benchmark_pct),
+                        borderColor: '#94a3b8',
+                        borderDash: [5, 5],
+                        borderWidth: 1.5,
+                        fill: false,
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { title: { display: true, text: 'Waste %' }, suggestedMax: 25 }
+                }
+            }
+        });
+    }
+
+    // Chart 2: Channel Mix
+    const channelData = {{ channel_mix|tojson }};
+    const ctxChannel = document.getElementById('storeChannelMixChart');
+    if (ctxChannel) {
+        new Chart(ctxChannel, {
+            type: 'doughnut',
+            data: {
+                labels: channelData.labels,
+                datasets: [{
+                    data: channelData.amounts,
+                    backgroundColor: ['#0f172a', '#d97706', '#e11d48'],
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}
