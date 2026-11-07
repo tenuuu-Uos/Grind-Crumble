@@ -16,6 +16,7 @@ except ImportError:
     httpx = None
 
 AI_INSIGHTS_FILE = DATA_DIR / "ai_store_insights.json"
+DEFAULT_GEMINI_MODEL = "gemini-3.5-flash"
 
 class DataManager:
     _cache = {}
@@ -515,7 +516,7 @@ For any store that shows issues (waste > 9%, fixed rent > 25%, negative/low marg
 }}
 Return ONLY valid JSON.
 """
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
+        models_to_try = [DEFAULT_GEMINI_MODEL, "gemini-1.5-flash", "gemini-2.0-flash"]
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"}
@@ -523,28 +524,35 @@ Return ONLY valid JSON.
 
         try:
             parsed_json = None
-            if httpx:
-                with httpx.Client(timeout=15.0) as client:
-                    resp = client.post(url, json=payload, headers={"Content-Type": "application/json"})
-                    if resp.status_code == 200:
-                        resp_data = resp.json()
-                        text_out = resp_data["candidates"][0]["content"]["parts"][0]["text"]
-                        parsed_json = json.loads(text_out)
-            else:
-                ssl_context = None
+            for model in models_to_try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
                 try:
-                    ssl_context = ssl.create_default_context(cafile=certifi.where())
+                    if httpx:
+                        with httpx.Client(timeout=15.0) as client:
+                            resp = client.post(url, json=payload, headers={"Content-Type": "application/json"})
+                            if resp.status_code == 200:
+                                resp_data = resp.json()
+                                text_out = resp_data["candidates"][0]["content"]["parts"][0]["text"]
+                                parsed_json = json.loads(text_out)
+                                break
+                    else:
+                        ssl_context = None
+                        try:
+                            ssl_context = ssl.create_default_context(cafile=certifi.where())
+                        except Exception:
+                            pass
+                        req = urllib.request.Request(
+                            url,
+                            data=json.dumps(payload).encode("utf-8"),
+                            headers={"Content-Type": "application/json"}
+                        )
+                        with urllib.request.urlopen(req, timeout=15.0, context=ssl_context) as resp:
+                            resp_data = json.loads(resp.read().decode("utf-8"))
+                            text_out = resp_data["candidates"][0]["content"]["parts"][0]["text"]
+                            parsed_json = json.loads(text_out)
+                            break
                 except Exception:
-                    pass
-                req = urllib.request.Request(
-                    url,
-                    data=json.dumps(payload).encode("utf-8"),
-                    headers={"Content-Type": "application/json"}
-                )
-                with urllib.request.urlopen(req, timeout=15.0, context=ssl_context) as resp:
-                    resp_data = json.loads(resp.read().decode("utf-8"))
-                    text_out = resp_data["candidates"][0]["content"]["parts"][0]["text"]
-                    parsed_json = json.loads(text_out)
+                    continue
 
             if parsed_json:
                 current_insights = cls.get_ai_insights()
@@ -666,32 +674,36 @@ Sentence 2: Likely operational cause.
 Sentence 3: Suggested immediate action for store manager.
 Do not use markdown headers, just plain text.
 """
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
+            models_to_try = [DEFAULT_GEMINI_MODEL, "gemini-1.5-flash", "gemini-2.0-flash"]
             payload = {
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {"temperature": 0.2, "maxOutputTokens": 200}
             }
             try:
-                if httpx:
-                    with httpx.Client(timeout=8.0) as client:
-                        resp = client.post(url, json=payload, headers={"Content-Type": "application/json"})
-                        if resp.status_code == 200:
-                            resp_data = resp.json()
+                for model in models_to_try:
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+                    if httpx:
+                        with httpx.Client(timeout=8.0) as client:
+                            resp = client.post(url, json=payload, headers={"Content-Type": "application/json"})
+                            if resp.status_code == 200:
+                                resp_data = resp.json()
+                                ai_text = resp_data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                                if ai_text:
+                                    summary = ai_text
+                                    break
+                    else:
+                        ssl_context = None
+                        try:
+                            ssl_context = ssl.create_default_context(cafile=certifi.where())
+                        except Exception:
+                            pass
+                        req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"})
+                        with urllib.request.urlopen(req, timeout=8.0, context=ssl_context) as resp:
+                            resp_data = json.loads(resp.read().decode("utf-8"))
                             ai_text = resp_data["candidates"][0]["content"]["parts"][0]["text"].strip()
                             if ai_text:
                                 summary = ai_text
-                else:
-                    ssl_context = None
-                    try:
-                        ssl_context = ssl.create_default_context(cafile=certifi.where())
-                    except Exception:
-                        pass
-                    req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"})
-                    with urllib.request.urlopen(req, timeout=8.0, context=ssl_context) as resp:
-                        resp_data = json.loads(resp.read().decode("utf-8"))
-                        ai_text = resp_data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                        if ai_text:
-                            summary = ai_text
+                                break
             except Exception:
                 pass # Use rule-based summary
 
@@ -711,7 +723,7 @@ Do not use markdown headers, just plain text.
         if not key:
             return {"valid": False, "message": "No API key configured. Enter a Gemini API key in Settings."}
 
-        models_to_test = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
+        models_to_test = ["gemini-3.5-flash", "gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
         last_error = "Unknown error"
         for model in models_to_test:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
@@ -825,7 +837,7 @@ INSTRUCTIONS:
 - Format key terms with markdown bold (**like this**). Do not use top-level markdown headers (#), keep it readable for store managers.
 """
 
-            models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
+            models_to_try = ["gemini-3.5-flash", "gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
             for model_name in models_to_try:
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
                 payload = {

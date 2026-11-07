@@ -249,8 +249,15 @@
             // 3. Append AI Response Bubble
             const aiBubble = document.createElement('div');
             aiBubble.className = "flex items-start space-x-3";
+            let modelLabel = 'Gemini 3.5 Flash';
+            if (data.model) {
+                if (data.model.includes('3.5')) modelLabel = 'Gemini 3.5 Flash';
+                else if (data.model.includes('2.0')) modelLabel = 'Gemini 2.0 Flash';
+                else if (data.model.includes('1.5')) modelLabel = 'Gemini 1.5 Flash';
+                else modelLabel = data.model;
+            }
             const engineBadge = data.engine === 'gemini-ai' ? 
-                `<span class="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded flex items-center space-x-1"><i data-lucide="sparkles" class="w-3 h-3 text-amber-600 inline"></i><span>Gemini 1.5 Flash (Settings Key)</span></span>` :
+                `<span class="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded flex items-center space-x-1"><i data-lucide="sparkles" class="w-3 h-3 text-amber-600 inline"></i><span>${modelLabel} (Settings Key)</span></span>` :
                 `<span class="text-[10px] bg-slate-200 text-slate-800 font-semibold px-2 py-0.5 rounded">Grounded Operational Engine</span>`;
 
             aiBubble.innerHTML = `
