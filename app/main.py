@@ -83,7 +83,7 @@ def store_detail_page(request: Request, store_id: str):
 
 @app.get("/network", response_class=HTMLResponse)
 def network_page(request: Request):
-    """Secondary 12-store comparative ranking table."""
+    """Secondary 12-store comparative ranking table with sortable columns."""
     settings = get_settings()
     cards = DataManager.get_all_store_cards()
     sorted_cards = sorted(cards, key=lambda x: x["margin_this_month"], reverse=True)
@@ -95,9 +95,66 @@ def network_page(request: Request):
             "stores": sorted_cards,
             "settings": settings,
             "active_page": "network",
-            "title": "Network Overview - Grind & Crumb"
+            "title": "Network Scoreboard - Grind & Crumb"
         }
     )
+
+@app.get("/stores/new", response_class=HTMLResponse)
+def new_store_page(request: Request, msg: str = None, error: str = None):
+    """Form to register a new store location in the chain."""
+    settings = get_settings()
+    existing_cards = DataManager.get_all_store_cards()
+    # Suggest next store id (e.g. S13 or S14)
+    existing_nums = [
+        int(c["store_id"][1:]) for c in existing_cards if c["store_id"].startswith("S") and c["store_id"][1:].isdigit()
+    ]
+    next_id = f"S{max(existing_nums, default=12) + 1:02d}"
+
+    return templates.TemplateResponse(
+        request=request,
+        name="new_store.html",
+        context={
+            "settings": settings,
+            "next_id": next_id,
+            "message": msg,
+            "error": error,
+            "active_page": "new_store",
+            "title": "Add New Store - Grind & Crumb"
+        }
+    )
+
+@app.post("/stores/new")
+def create_new_store(
+    store_id: str = Form(...),
+    store_name: str = Form(...),
+    city: str = Form(...),
+    format: str = Form("Standard"),
+    location_type: str = Form("High street"),
+    monthly_rent_gbp: float = Form(7500.0),
+    manager: str = Form("Store Manager"),
+    target_sales_gbp: float = Form(60000.0)
+):
+    """Handles adding a new store to stores.csv and seeding baseline P&L data."""
+    try:
+        new_store = DataManager.add_new_store({
+            "store_id": store_id.strip().upper(),
+            "store_name": store_name.strip(),
+            "city": city.strip(),
+            "format": format.strip(),
+            "location_type": location_type.strip(),
+            "monthly_rent_gbp": monthly_rent_gbp,
+            "manager": manager.strip(),
+            "target_sales_gbp": target_sales_gbp
+        })
+        return RedirectResponse(
+            url=f"/?added={new_store['store_id']}",
+            status_code=303
+        )
+    except Exception as e:
+        return RedirectResponse(
+            url=f"/stores/new?error={str(e)}",
+            status_code=303
+        )
 
 @app.get("/settings", response_class=HTMLResponse)
 def settings_page(request: Request, saved: bool = False):

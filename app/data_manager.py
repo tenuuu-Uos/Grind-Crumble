@@ -52,18 +52,103 @@ class DataManager:
         cls._cache = {}
 
     @classmethod
+    def add_new_store(cls, store_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Adds a new store to stores.csv and seeds initial baseline P&L record.
+        """
+        data = cls.get_raw_data(reload=True)
+        stores_df = data["stores"]
+        pnl_df = data["pnl"]
+
+        store_id = store_data["store_id"].strip().upper()
+        # Ensure unique ID
+        if not stores_df.empty and store_id in stores_df["store_id"].values:
+            raise ValueError(f"Store ID '{store_id}' already exists.")
+
+        # 1. Append to stores.csv
+        new_store_row = {
+            "store_id": store_id,
+            "store_name": store_data.get("store_name", f"Store {store_id}"),
+            "city": store_data.get("city", "Unknown"),
+            "format": store_data.get("format", "Standard"),
+            "location_type": store_data.get("location_type", "High street"),
+            "opened_date": store_data.get("opened_date", "2026-07-01"),
+            "sqft": int(store_data.get("sqft", 1400)),
+            "seats": int(store_data.get("seats", 36)),
+            "rent_gbp_month": float(store_data.get("rent_gbp_month", 7500.0)),
+            "store_manager": store_data.get("store_manager", "New Manager"),
+            "refit_year": None
+        }
+
+        updated_stores = pd.concat([stores_df, pd.DataFrame([new_store_row])], ignore_index=True)
+        updated_stores.to_csv(DATA_DIR / "stores.csv", index=False)
+
+        # 2. Append baseline PnL row for latest month so it appears immediately
+        months = sorted(pnl_df["month"].unique()) if not pnl_df.empty else ["2026-06"]
+        latest_month = months[-1]
+
+        sales = float(store_data.get("initial_sales_gbp", 55000.0))
+        rent = float(store_data.get("rent_gbp_month", 7500.0))
+        rates = round(rent * 0.22, 2)
+        food_cost = round(sales * 0.28, 2)
+        labour_cost = round(sales * 0.29, 2)
+        waste_rate = float(store_data.get("waste_rate", 0.085))
+        waste_cost = round(food_cost * waste_rate, 2)
+        deliv_sales = round(sales * 0.12, 2)
+        app_sales = round(sales * 0.15, 2)
+        instore_sales = round(sales - deliv_sales - app_sales, 2)
+        comm = round(deliv_sales * 0.30, 2)
+        pack = round((deliv_sales / 12.0) * 0.45, 2)
+        opex = 2200.0
+        profit = round(sales - food_cost - labour_cost - rent - rates - comm - pack - opex, 2)
+        margin = round(profit / sales, 3)
+
+        new_pnl_row = {
+            "month": latest_month,
+            "store_id": store_id,
+            "store_name": new_store_row["store_name"],
+            "city": new_store_row["city"],
+            "format": new_store_row["format"],
+            "location_type": new_store_row["location_type"],
+            "trading_days": 30,
+            "total_sales_gbp": sales,
+            "sales_instore_gbp": instore_sales,
+            "sales_app_gbp": app_sales,
+            "sales_delivery_gbp": deliv_sales,
+            "total_receipts": round(sales / 5.8),
+            "receipts_instore": round(instore_sales / 5.5),
+            "receipts_app": round(app_sales / 6.0),
+            "receipts_delivery": round(deliv_sales / 12.5),
+            "avg_ticket_gbp": 5.80,
+            "door_count": 22000,
+            "food_cost_gbp": food_cost,
+            "labour_hours": 1200.0,
+            "labour_cost_gbp": labour_cost,
+            "delivery_commission_gbp": comm,
+            "delivery_packaging_gbp": pack,
+            "rent_gbp": rent,
+            "business_rates_gbp": rates,
+            "utilities_gbp": 1200.0,
+            "repairs_maintenance_gbp": 400.0,
+            "other_opex_gbp": 600.0,
+            "store_profit_gbp": profit,
+            "store_margin": margin,
+            "waste_rate": waste_rate,
+            "waste_cost_gbp": waste_cost,
+            "headcount": 12,
+            "leavers": 0,
+            "staff_survey_score_10": 7.5
+        }
+
+        updated_pnl = pd.concat([pnl_df, pd.DataFrame([new_pnl_row])], ignore_index=True)
+        updated_pnl.to_csv(DATA_DIR / "starter_store_monthly_pnl.csv", index=False)
+
+        cls.invalidate_cache()
+        return new_store_row
+
+    @classmethod
     def get_all_store_cards(cls) -> List[Dict[str, Any]]:
-        """
-        Computes the 12-store grid summary.
-        Each card:
-        - Store name, city, manager
-        - Margin this month vs. last month
-        - Waste % vs. chain benchmark
-        - Delivery share %
-        - Peak staffing gap
-        - RAG status
-        - Plain-language alert (enriched with Gemini AI if available)
-        """
+        """Computes summary cards for all stores."""
         data = cls.get_raw_data()
         settings = get_settings()
         ai_insights = cls.get_ai_insights()
@@ -144,7 +229,6 @@ class DataManager:
                 plain_alert = ai_store_data["alert"]
                 action_items = ai_store_data.get("action_items", [])
             else:
-                # Built-in operational rule generator
                 if s_id == "S10" or waste_pct >= 18.0:
                     plain_alert = f"Waste is {waste_multiple}× the chain benchmark ({waste_pct}% vs {waste_benchmark}% target)."
                     action_items = ["Adopt weather & day-adjusted par levels to trim prep buffer.", f"Food waste is costing £{int(curr_row['waste_cost_gbp']):,}/mo."]
@@ -211,24 +295,24 @@ class DataManager:
         store_pnl = pnl[pnl["store_id"] == store_id].sort_values("month")
         latest = store_pnl.iloc[-1] if not store_pnl.empty else None
 
-        sales = float(latest["total_sales_gbp"])
-        food = float(latest["food_cost_gbp"])
-        waste = float(latest["waste_cost_gbp"])
-        labour = float(latest["labour_cost_gbp"])
-        delivery = float(latest["delivery_commission_gbp"]) + float(latest["delivery_packaging_gbp"])
-        rent_rates = float(latest["rent_gbp"]) + float(latest["business_rates_gbp"])
-        utilities_opex = float(latest["utilities_gbp"]) + float(latest["repairs_maintenance_gbp"]) + float(latest["other_opex_gbp"])
-        profit = float(latest["store_profit_gbp"])
+        sales = float(latest["total_sales_gbp"]) if latest is not None else 1.0
+        food = float(latest["food_cost_gbp"]) if latest is not None else 0.0
+        waste = float(latest["waste_cost_gbp"]) if latest is not None else 0.0
+        labour = float(latest["labour_cost_gbp"]) if latest is not None else 0.0
+        delivery = (float(latest["delivery_commission_gbp"]) + float(latest["delivery_packaging_gbp"])) if latest is not None else 0.0
+        rent_rates = (float(latest["rent_gbp"]) + float(latest["business_rates_gbp"])) if latest is not None else 0.0
+        utilities_opex = (float(latest["utilities_gbp"]) + float(latest["repairs_maintenance_gbp"]) + float(latest["other_opex_gbp"])) if latest is not None else 0.0
+        profit = float(latest["store_profit_gbp"]) if latest is not None else 0.0
 
         pnl_waterfall = [
             {"label": "Total Sales (Net)", "amount": round(sales), "type": "positive", "pct": 100.0},
-            {"label": "Food & Beverage Ingredients", "amount": -round(food), "type": "negative", "pct": round(food/sales*100, 1)},
-            {"label": "Food Waste Cost", "amount": -round(waste), "type": "negative", "pct": round(waste/sales*100, 1)},
-            {"label": "Store Labour & Rota", "amount": -round(labour), "type": "negative", "pct": round(labour/sales*100, 1)},
-            {"label": "Delivery Commissions & Packaging", "amount": -round(delivery), "type": "negative", "pct": round(delivery/sales*100, 1)},
-            {"label": "Rent & Business Rates", "amount": -round(rent_rates), "type": "negative", "pct": round(rent_rates/sales*100, 1)},
-            {"label": "Utilities & Store OPEX", "amount": -round(utilities_opex), "type": "negative", "pct": round(utilities_opex/sales*100, 1)},
-            {"label": "Net Store Operating Profit", "amount": round(profit), "type": "profit" if profit >= 0 else "loss", "pct": round(profit/sales*100, 1)}
+            {"label": "Food & Beverage Ingredients", "amount": -round(food), "type": "negative", "pct": round(food/max(1.0, sales)*100, 1)},
+            {"label": "Food Waste Cost", "amount": -round(waste), "type": "negative", "pct": round(waste/max(1.0, sales)*100, 1)},
+            {"label": "Store Labour & Rota", "amount": -round(labour), "type": "negative", "pct": round(labour/max(1.0, sales)*100, 1)},
+            {"label": "Delivery Commissions & Packaging", "amount": -round(delivery), "type": "negative", "pct": round(delivery/max(1.0, sales)*100, 1)},
+            {"label": "Rent & Business Rates", "amount": -round(rent_rates), "type": "negative", "pct": round(rent_rates/max(1.0, sales)*100, 1)},
+            {"label": "Utilities & Store OPEX", "amount": -round(utilities_opex), "type": "negative", "pct": round(utilities_opex/max(1.0, sales)*100, 1)},
+            {"label": "Net Store Operating Profit", "amount": round(profit), "type": "profit" if profit >= 0 else "loss", "pct": round(profit/max(1.0, sales)*100, 1)}
         ]
 
         waste_trend = []
@@ -239,16 +323,16 @@ class DataManager:
                 "benchmark_pct": settings["waste_benchmark_pct"]
             })
 
-        instore_sales = float(latest["sales_instore_gbp"])
-        app_sales = float(latest["sales_app_gbp"])
-        deliv_sales = float(latest["sales_delivery_gbp"])
+        instore_sales = float(latest["sales_instore_gbp"]) if latest is not None else 0.0
+        app_sales = float(latest["sales_app_gbp"]) if latest is not None else 0.0
+        deliv_sales = float(latest["sales_delivery_gbp"]) if latest is not None else 0.0
         channel_mix = {
             "labels": ["In-Store", "Direct App", "Delivery"],
             "amounts": [round(instore_sales), round(app_sales), round(deliv_sales)],
             "percentages": [
-                round(instore_sales / sales * 100, 1),
-                round(app_sales / sales * 100, 1),
-                round(deliv_sales / sales * 100, 1)
+                round(instore_sales / max(1.0, sales) * 100, 1),
+                round(app_sales / max(1.0, sales) * 100, 1),
+                round(deliv_sales / max(1.0, sales) * 100, 1)
             ]
         }
 
@@ -293,10 +377,7 @@ class DataManager:
 
     @classmethod
     def process_upload_with_gemini(cls, file_content: bytes, filename: str, api_key: str = "") -> Dict[str, Any]:
-        """
-        Cleanses uploaded CSV, saves it to data/, and calls the Gemini API
-        to analyze the data and generate actionable, plain-language store alerts.
-        """
+        """Cleanses uploaded CSV, merges with stores, and calls Gemini API."""
         df = pd.read_csv(io.BytesIO(file_content))
         original_rows = len(df)
         cols = list(df.columns)
@@ -319,12 +400,45 @@ class DataManager:
         if "store_id" in cols:
             df["store_id"] = df["store_id"].astype(str).str.strip().str.upper()
 
-        # 4. Save file
+        # 4. Check if any new stores are introduced in the CSV
+        if "store_id" in cols and "store_name" in cols:
+            stores_df = cls.get_raw_data()["stores"]
+            existing_ids = set(stores_df["store_id"].unique()) if not stores_df.empty else set()
+            new_store_rows = []
+            for _, r in df.iterrows():
+                sid = r["store_id"]
+                if sid not in existing_ids:
+                    new_store_rows.append({
+                        "store_id": sid,
+                        "store_name": r["store_name"],
+                        "city": r.get("city", "Unknown"),
+                        "format": r.get("format", "Standard"),
+                        "location_type": r.get("location_type", "High street"),
+                        "opened_date": "2026-07-01",
+                        "sqft": 1400,
+                        "seats": 36,
+                        "rent_gbp_month": float(r.get("rent_gbp", 7500)),
+                        "store_manager": "Assigned via CSV",
+                        "refit_year": None
+                    })
+                    existing_ids.add(sid)
+            if new_store_rows:
+                updated_stores = pd.concat([stores_df, pd.DataFrame(new_store_rows)], ignore_index=True)
+                updated_stores.to_csv(DATA_DIR / "stores.csv", index=False)
+
+        # 5. Append or overwrite target file
         target_path = DATA_DIR / filename
-        df.to_csv(target_path, index=False)
+        # If it's starter_store_monthly_pnl.csv and has new months, append them
+        if filename == "starter_store_monthly_pnl.csv" and target_path.exists():
+            existing_pnl = pd.read_csv(target_path)
+            combined_pnl = pd.concat([existing_pnl, df]).drop_duplicates(subset=["month", "store_id"], keep="last")
+            combined_pnl.to_csv(target_path, index=False)
+        else:
+            df.to_csv(target_path, index=False)
+
         cls.invalidate_cache()
 
-        # 5. Gemini API Integration
+        # 6. Gemini API Analysis
         gemini_result = cls.call_gemini_api(df, filename, api_key)
 
         return {
@@ -337,29 +451,57 @@ class DataManager:
 
     @classmethod
     def call_gemini_api(cls, df: pd.DataFrame, filename: str, api_key: str = "") -> Dict[str, Any]:
-        """
-        Calls Gemini API (gemini-1.5-flash / gemini-2.0-flash) to generate ops alerts from CSV data.
-        If no API key is provided, generates local intelligent operational insights.
-        """
+        """Calls Gemini API (gemini-1.5-flash / gemini-2.0-flash) or falls back to local rules."""
         key = api_key or get_settings().get("gemini_api_key", "")
         summary_sample = df.head(15).to_dict(orient="records")
 
+        # Fallback intelligent local rule analysis if no API key provided
         if not key:
-            # Local Ops Intelligence engine fallback
+            insights = {}
+            for row in summary_sample:
+                sid = row.get("store_id")
+                if not sid:
+                    continue
+                w_rate = float(row.get("waste_rate", 0)) * 100
+                margin = float(row.get("store_margin", 0)) * 100
+                sales = float(row.get("total_sales_gbp", 1))
+                rent = float(row.get("rent_gbp", 0))
+                occ = (rent / max(1.0, sales)) * 100
+                
+                if w_rate > 15:
+                    insights[sid] = {
+                        "alert": f"High waste alert: Food waste is running at {w_rate:.1f}% vs 9.0% benchmark.",
+                        "action_items": ["Review prep pars immediately", "Trim safety stock on fresh items"]
+                    }
+                elif occ > 35:
+                    insights[sid] = {
+                        "alert": f"Fixed occupancy trap: Rent devours {occ:.1f}% of store revenue.",
+                        "action_items": ["Requires lease renegotiation or menu price optimization"]
+                    }
+                elif margin < 5:
+                    insights[sid] = {
+                        "alert": f"Depressed operating margin ({margin:.1f}%) requires immediate ops review.",
+                        "action_items": ["Control prime labor hours", "Promote high-margin beverages"]
+                    }
+            if insights:
+                current_insights = cls.get_ai_insights()
+                current_insights.update(insights)
+                cls.save_ai_insights(current_insights)
+
             return {
                 "status": "local_analyzed",
-                "message": "Data cleansed and integrated. (Add Gemini API key in Settings for AI synthesis).",
-                "sample_analyzed": len(summary_sample)
+                "message": f"Cleansed {len(df)} rows. Local operational engine updated {len(insights)} store alerts (Provide Gemini API key in Settings for full AI reasoning).",
+                "insights_generated": list(insights.keys())
             }
 
         prompt = f"""
-You are an operational intelligence analyst for Grind & Crumb, a 12-store café chain.
-Analyze this newly uploaded monthly dataset '{filename}' (first 15 rows sample: {json.dumps(summary_sample)}).
+You are an operational intelligence analyst for Grind & Crumb, a café chain.
+Analyze this newly uploaded dataset '{filename}' (first 15 rows sample: {json.dumps(summary_sample)}).
 
-For any store that shows issues (e.g. food waste > 9%, fixed rent > 25% of sales, negative margins, or lunchtime staffing deficit), produce a JSON object with store IDs as keys:
+For any store that shows issues (waste > 9%, fixed rent > 25%, negative/low margins, or new store launch), produce a JSON object with store IDs as keys:
 {{
-  "S07": {{
-    "alert": "Plain-language 1-sentence action summary",
+  "STORE_ID": {{
+    "alert": "Concise plain-language 1-sentence action summary",
     "action_items": ["Action point 1", "Action point 2"]
   }}
 }}
@@ -382,19 +524,18 @@ Return ONLY valid JSON.
                 text_out = resp_data["candidates"][0]["content"]["parts"][0]["text"]
                 parsed_json = json.loads(text_out)
                 
-                # Save AI insights
                 current_insights = cls.get_ai_insights()
                 current_insights.update(parsed_json)
                 cls.save_ai_insights(current_insights)
 
                 return {
                     "status": "ai_analyzed",
-                    "message": "Gemini API successfully analyzed data and updated store alerts!",
+                    "message": f"Gemini API analyzed {len(df)} rows and generated new operational insights for {len(parsed_json)} stores!",
                     "insights_generated": list(parsed_json.keys())
                 }
         except Exception as e:
             return {
                 "status": "api_error",
-                "message": f"Gemini API request note: {str(e)}",
+                "message": f"Gemini API notice: {str(e)}",
                 "fallback": "Standard operational rules applied to store cards."
             }

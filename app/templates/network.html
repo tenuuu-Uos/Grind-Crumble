@@ -4,80 +4,127 @@
 <div class="space-y-6">
 
     <!-- Header -->
-    <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h1 class="text-xl font-bold text-slate-900">Network Overview (12 Store Ranking)</h1>
-            <p class="text-xs text-slate-500 mt-0.5">
-                Comparative chain ranking across profit margin, food waste rate, occupancy ratio, and delivery channel mix.
+            <div class="flex items-center space-x-2">
+                <h1 class="text-xl font-bold text-slate-900">Network Scoreboard</h1>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold">{{ stores|length }} Stores</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">
+                Comparative ranking across margin, waste, occupancy, and delivery. Click any table header to sort.
             </p>
         </div>
-        <a href="/" class="text-xs font-semibold text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg border border-slate-300 bg-slate-50">
-            &larr; Back to 12 Store Cards Grid
-        </a>
+        <div class="flex items-center space-x-2">
+            <a href="/stores/new" class="text-xs font-semibold text-slate-900 hover:bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-300 bg-white shadow-sm flex items-center space-x-1">
+                <i data-lucide="plus" class="w-3.5 h-3.5 text-amber-600"></i>
+                <span>Add Store</span>
+            </a>
+            <a href="/" class="text-xs font-semibold text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50">
+                &larr; Cards Grid
+            </a>
+        </div>
     </div>
 
-    <!-- Comparative Table -->
+    <!-- Comparative Sortable Table -->
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full text-xs text-left divide-y divide-slate-200">
-                <thead class="bg-slate-50 font-bold text-slate-700 uppercase tracking-wider text-[11px]">
+            <table class="min-w-full text-xs text-left divide-y divide-slate-200" id="scoreboardTable">
+                <thead class="bg-slate-50 font-bold text-slate-700 uppercase tracking-wider text-[11px] select-none">
                     <tr>
-                        <th class="py-3 px-4">Store</th>
-                        <th class="py-3 px-4">City & Format</th>
-                        <th class="py-3 px-4 text-right">
-                            <span class="tooltip-wrap">Monthly Sales (£)<span class="tooltip-box">Total monthly store revenue net of VAT.</span></span>
+                        <th onclick="sortTable(0, 'text')" class="py-3 px-4 cursor-pointer hover:bg-slate-100 transition">
+                            <div class="flex items-center space-x-1">
+                                <span>Store</span>
+                                <i data-lucide="chevrons-up-down" class="w-3 h-3 text-slate-400"></i>
+                            </div>
                         </th>
-                        <th class="py-3 px-4 text-right">
-                            <span class="tooltip-wrap">Net Profit (£)<span class="tooltip-box">Store operating profit after all prime costs, rent, rates, and opex.</span></span>
+                        <th onclick="sortTable(1, 'text')" class="py-3 px-4 cursor-pointer hover:bg-slate-100 transition">
+                            <div class="flex items-center space-x-1">
+                                <span>City &amp; Format</span>
+                                <i data-lucide="chevrons-up-down" class="w-3 h-3 text-slate-400"></i>
+                            </div>
                         </th>
-                        <th class="py-3 px-4 text-right">
-                            <span class="tooltip-wrap">Store Margin<span class="tooltip-box">Operating profit divided by total net revenue. Target floor: &ge; {{ settings.margin_floor_pct }}%.</span></span>
+                        <th onclick="sortTable(2, 'num')" class="py-3 px-4 text-right cursor-pointer hover:bg-slate-100 transition">
+                            <div class="flex items-center justify-end space-x-1">
+                                <span class="tooltip-wrap">Monthly Sales (£)<span class="tooltip-box">Total monthly store revenue net of VAT.</span></span>
+                                <i data-lucide="chevrons-up-down" class="w-3 h-3 text-slate-400"></i>
+                            </div>
                         </th>
-                        <th class="py-3 px-4 text-right">
-                            <span class="tooltip-wrap">Waste %<span class="tooltip-box">Food waste cost divided by food revenue. Benchmark limit: &le; {{ settings.waste_benchmark_pct }}%.</span></span>
+                        <th onclick="sortTable(3, 'num')" class="py-3 px-4 text-right cursor-pointer hover:bg-slate-100 transition">
+                            <div class="flex items-center justify-end space-x-1">
+                                <span class="tooltip-wrap">Net Profit (£)<span class="tooltip-box">Store operating profit after prime costs and occupancy.</span></span>
+                                <i data-lucide="chevrons-up-down" class="w-3 h-3 text-slate-400"></i>
+                            </div>
                         </th>
-                        <th class="py-3 px-4 text-right">
-                            <span class="tooltip-wrap">Occupancy %<span class="tooltip-box">Monthly Rent + Business Rates divided by total sales. Ceiling: &le; {{ settings.occupancy_ceiling_pct }}%.</span></span>
+                        <th onclick="sortTable(4, 'num')" class="py-3 px-4 text-right cursor-pointer hover:bg-slate-100 transition">
+                            <div class="flex items-center justify-end space-x-1">
+                                <span class="tooltip-wrap">Store Margin %<span class="tooltip-box">Operating profit divided by total net revenue. Target floor: &ge; {{ settings.margin_floor_pct }}%.</span></span>
+                                <i data-lucide="chevrons-up-down" class="w-3 h-3 text-slate-400"></i>
+                            </div>
                         </th>
-                        <th class="py-3 px-4 text-right">
-                            <span class="tooltip-wrap">Delivery %<span class="tooltip-box">Share of monthly sales from delivery apps.</span></span>
+                        <th onclick="sortTable(5, 'num')" class="py-3 px-4 text-right cursor-pointer hover:bg-slate-100 transition">
+                            <div class="flex items-center justify-end space-x-1">
+                                <span class="tooltip-wrap">Waste %<span class="tooltip-box">Food waste cost divided by food revenue. Benchmark limit: &le; {{ settings.waste_benchmark_pct }}%.</span></span>
+                                <i data-lucide="chevrons-up-down" class="w-3 h-3 text-slate-400"></i>
+                            </div>
                         </th>
-                        <th class="py-3 px-4 text-center">Peak Staff Gap</th>
-                        <th class="py-3 px-4 text-center">Status</th>
+                        <th onclick="sortTable(6, 'num')" class="py-3 px-4 text-right cursor-pointer hover:bg-slate-100 transition">
+                            <div class="flex items-center justify-end space-x-1">
+                                <span class="tooltip-wrap">Occupancy %<span class="tooltip-box">Rent + Rates divided by total sales. Ceiling: &le; {{ settings.occupancy_ceiling_pct }}%.</span></span>
+                                <i data-lucide="chevrons-up-down" class="w-3 h-3 text-slate-400"></i>
+                            </div>
+                        </th>
+                        <th onclick="sortTable(7, 'num')" class="py-3 px-4 text-right cursor-pointer hover:bg-slate-100 transition">
+                            <div class="flex items-center justify-end space-x-1">
+                                <span class="tooltip-wrap">Delivery %<span class="tooltip-box">Share of monthly sales from delivery apps.</span></span>
+                                <i data-lucide="chevrons-up-down" class="w-3 h-3 text-slate-400"></i>
+                            </div>
+                        </th>
+                        <th onclick="sortTable(8, 'num')" class="py-3 px-4 text-center cursor-pointer hover:bg-slate-100 transition">
+                            <div class="flex items-center justify-center space-x-1">
+                                <span>Peak Staff Gap</span>
+                                <i data-lucide="chevrons-up-down" class="w-3 h-3 text-slate-400"></i>
+                            </div>
+                        </th>
+                        <th onclick="sortTable(9, 'text')" class="py-3 px-4 text-center cursor-pointer hover:bg-slate-100 transition">
+                            <div class="flex items-center justify-center space-x-1">
+                                <span>Status</span>
+                                <i data-lucide="chevrons-up-down" class="w-3 h-3 text-slate-400"></i>
+                            </div>
+                        </th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="divide-y divide-slate-100" id="scoreboardBody">
                     {% for s in stores %}
                     <tr class="hover:bg-slate-50/80 transition {% if s.rag_status == 'red' %}bg-rose-50/30{% endif %}">
-                        <td class="py-3 px-4 font-bold text-slate-900">
+                        <td class="py-3 px-4 font-bold text-slate-900" data-sort-val="{{ s.store_name }}">
                             <a href="/store/{{ s.store_id }}" class="hover:text-amber-700 flex items-center space-x-1.5">
                                 <span>{{ s.store_name }}</span>
-                                <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-slate-400"></i>
+                                <span class="text-[10px] text-slate-400 font-mono">({{ s.store_id }})</span>
                             </a>
                         </td>
-                        <td class="py-3 px-4 text-slate-500">{{ s.city }} &bull; {{ s.format }}</td>
-                        <td class="py-3 px-4 text-right font-mono font-medium">£{{ s.total_sales_gbp|num }}</td>
-                        <td class="py-3 px-4 text-right font-mono font-bold {% if s.store_profit_gbp < 0 %}text-rose-600{% else %}text-slate-900{% endif %}">
+                        <td class="py-3 px-4 text-slate-500" data-sort-val="{{ s.city }} {{ s.format }}">{{ s.city }} &bull; {{ s.format }}</td>
+                        <td class="py-3 px-4 text-right font-mono font-medium" data-sort-val="{{ s.total_sales_gbp }}">£{{ s.total_sales_gbp|num }}</td>
+                        <td class="py-3 px-4 text-right font-mono font-bold {% if s.store_profit_gbp < 0 %}text-rose-600{% else %}text-slate-900{% endif %}" data-sort-val="{{ s.store_profit_gbp }}">
                             £{{ s.store_profit_gbp|num }}
                         </td>
-                        <td class="py-3 px-4 text-right font-bold {% if s.margin_this_month < settings.margin_floor_pct %}text-rose-600{% else %}text-emerald-700{% endif %}">
+                        <td class="py-3 px-4 text-right font-bold {% if s.margin_this_month < settings.margin_floor_pct %}text-rose-600{% else %}text-emerald-700{% endif %}" data-sort-val="{{ s.margin_this_month }}">
                             {{ s.margin_this_month }}%
                         </td>
-                        <td class="py-3 px-4 text-right font-semibold {% if s.waste_pct > settings.waste_benchmark_pct %}text-rose-600{% else %}text-slate-700{% endif %}">
+                        <td class="py-3 px-4 text-right font-semibold {% if s.waste_pct > settings.waste_benchmark_pct %}text-rose-600{% else %}text-slate-700{% endif %}" data-sort-val="{{ s.waste_pct }}">
                             {{ s.waste_pct }}%
                         </td>
-                        <td class="py-3 px-4 text-right font-medium {% if s.occupancy_pct > settings.occupancy_ceiling_pct %}text-rose-600 font-bold{% else %}text-slate-600{% endif %}">
+                        <td class="py-3 px-4 text-right font-medium {% if s.occupancy_pct > settings.occupancy_ceiling_pct %}text-rose-600 font-bold{% else %}text-slate-600{% endif %}" data-sort-val="{{ s.occupancy_pct }}">
                             {{ s.occupancy_pct }}%
                         </td>
-                        <td class="py-3 px-4 text-right font-medium text-slate-600">{{ s.delivery_share_pct }}%</td>
-                        <td class="py-3 px-4 text-center">
+                        <td class="py-3 px-4 text-right font-medium text-slate-600" data-sort-val="{{ s.delivery_share_pct }}">{{ s.delivery_share_pct }}%</td>
+                        <td class="py-3 px-4 text-center" data-sort-val="{{ s.peak_staff_gap }}">
                             {% if s.peak_staff_gap < 0 %}
                             <span class="text-rose-600 font-bold">{{ s.peak_staff_gap }} staff</span>
                             {% else %}
                             <span class="text-slate-500 font-medium">Balanced</span>
                             {% endif %}
                         </td>
-                        <td class="py-3 px-4 text-center">
+                        <td class="py-3 px-4 text-center" data-sort-val="{{ s.rag_status }}">
                             {% if s.rag_status == 'red' %}
                             <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider rag-badge-red">Action</span>
                             {% elif s.rag_status == 'amber' %}
@@ -94,4 +141,42 @@
     </div>
 
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentSortCol = -1;
+    let isAsc = false;
+
+    function sortTable(colIndex, type) {
+        const tbody = document.getElementById('scoreboardBody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+        if (currentSortCol === colIndex) {
+            isAsc = !isAsc;
+        } else {
+            currentSortCol = colIndex;
+            // Default numeric to descending (highest first), text to ascending
+            isAsc = type === 'text';
+        }
+
+        rows.sort((a, b) => {
+            const cellA = a.children[colIndex];
+            const cellB = b.children[colIndex];
+            const valA = cellA.getAttribute('data-sort-val') || cellA.innerText.trim();
+            const valB = cellB.getAttribute('data-sort-val') || cellB.innerText.trim();
+
+            if (type === 'num') {
+                const numA = parseFloat(valA) || 0;
+                const numB = parseFloat(valB) || 0;
+                return isAsc ? numA - numB : numB - numA;
+            } else {
+                return isAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            }
+        });
+
+        // Re-append sorted rows
+        rows.forEach(r => tbody.appendChild(r));
+    }
+</script>
 {% endblock %}

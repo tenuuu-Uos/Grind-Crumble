@@ -76,7 +76,7 @@ class TestStoreHealthMonitor(unittest.TestCase):
         resp = home_page(req)
         self.assertEqual(resp.status_code, 200)
         body = resp.body.decode("utf-8")
-        self.assertIn("12 Store Locations", body)
+        self.assertIn("Store Locations", body)
         self.assertIn("Manchester Piccadilly", body)
         self.assertIn("Hull Paragon", body)
 
@@ -93,7 +93,16 @@ class TestStoreHealthMonitor(unittest.TestCase):
         resp = network_page(req)
         self.assertEqual(resp.status_code, 200)
         body = resp.body.decode("utf-8")
-        self.assertIn("Network Overview", body)
+        self.assertIn("Network Scoreboard", body)
+        self.assertIn("scoreboardTable", body)
+
+    def test_new_store_page_and_creation(self):
+        from app.main import new_store_page
+        req = make_request("/stores/new")
+        resp = new_store_page(req)
+        self.assertEqual(resp.status_code, 200)
+        body = resp.body.decode("utf-8")
+        self.assertIn("Add New Store Location", body)
 
     def test_settings_page_template(self):
         req = make_request("/settings")

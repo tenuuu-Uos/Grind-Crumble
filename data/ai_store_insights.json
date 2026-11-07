@@ -1,0 +1,23 @@
+{
+  "S07": {
+    "alert": "Depressed operating margin (-1.7%) requires immediate ops review.",
+    "action_items": [
+      "Control prime labor hours",
+      "Promote high-margin beverages"
+    ]
+  },
+  "S10": {
+    "alert": "High waste alert: Food waste is running at 21.5% vs 9.0% benchmark.",
+    "action_items": [
+      "Review prep pars immediately",
+      "Trim safety stock on fresh items"
+    ]
+  },
+  "S11": {
+    "alert": "Depressed operating margin (-0.4%) requires immediate ops review.",
+    "action_items": [
+      "Control prime labor hours",
+      "Promote high-margin beverages"
+    ]
+  }
+}

@@ -6,17 +6,42 @@ A minimalist, store-first operational intelligence dashboard for Grind & Crumb c
 
 ## 1. Quick Start
 
+### Prerequisites & Installation
+
+Create and activate a virtual environment, then install the required packages:
+
+```bash
+# 1. Create a virtual environment
+python -m venv .venv
+
+# 2. Activate the virtual environment
+# Windows (PowerShell):
+.venv\Scripts\Activate.ps1
+# Windows (cmd.exe):
+.venv\Scripts\activate.bat
+# macOS / Linux:
+source .venv/bin/activate
+
+# 3. Install requirements
+pip install -r requirements.txt
+```
+
+### Requirements (`requirements.txt`)
+```text
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+jinja2>=3.1.4
+python-multipart>=0.0.9
+httpx>=0.27.0
+pandas>=2.2.0
+python-dotenv>=1.0.1
+```
+
 ### Run the App
 ```bash
-# Windows
-.venv\Scripts\Activate.ps1
-python run.py
-
-# Mac / Linux
-source .venv/bin/activate
 python run.py
 ```
-Open **[http://127.0.0.1:8000](http://127.0.0.1:8000)**.
+Open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser.
 
 ---
 

@@ -4,25 +4,53 @@
 <div class="space-y-6">
 
     <!-- Top Bar -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
         <div>
-            <h1 class="text-lg font-bold text-slate-900 tracking-tight">12 Store Locations</h1>
+            <div class="flex items-center space-x-2">
+                <h1 class="text-lg font-bold text-slate-900 tracking-tight">Store Locations ({{ stores|length }})</h1>
+                <a href="/stores/new" class="text-[11px] font-semibold text-slate-900 hover:text-amber-700 flex items-center space-x-1 border border-slate-300 rounded px-2 py-0.5 bg-white shadow-sm hover:border-slate-400 transition">
+                    <i data-lucide="plus" class="w-3 h-3 text-amber-600"></i>
+                    <span>Add Store</span>
+                </a>
+            </div>
             <p class="text-xs text-slate-500">Real-time store performance, profit margin trends, food waste, and peak rush staffing.</p>
         </div>
 
-        <!-- Filter -->
-        <div class="flex items-center space-x-1.5 text-xs">
-            <button onclick="filterStores('all')" id="btn-all" class="px-2.5 py-1 rounded font-medium bg-slate-900 text-white transition">All (12)</button>
-            <button onclick="filterStores('red')" id="btn-red" class="px-2.5 py-1 rounded font-medium text-rose-700 bg-rose-50 border border-rose-200/70 hover:bg-rose-100 transition">Action ({{ red_count }})</button>
-            <button onclick="filterStores('amber')" id="btn-amber" class="px-2.5 py-1 rounded font-medium text-amber-700 bg-amber-50 border border-amber-200/70 hover:bg-amber-100 transition">Watch ({{ amber_count }})</button>
-            <button onclick="filterStores('green')" id="btn-green" class="px-2.5 py-1 rounded font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/70 hover:bg-emerald-100 transition">Optimal ({{ green_count }})</button>
+        <!-- Controls: Sort & Filter -->
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+            <!-- Sort dropdown -->
+            <div class="flex items-center space-x-1.5 bg-white border border-slate-200 rounded px-2 py-1 shadow-sm">
+                <span class="text-[11px] text-slate-400 font-medium">Sort:</span>
+                <select id="gridSort" onchange="sortStoreCards(this.value)" class="text-xs bg-transparent border-0 focus:outline-none text-slate-700 font-medium cursor-pointer">
+                    <option value="id-asc">Store ID</option>
+                    <option value="margin-desc">Margin (High &rarr; Low)</option>
+                    <option value="margin-asc">Margin (Low &rarr; High)</option>
+                    <option value="waste-desc">Waste (High &rarr; Low)</option>
+                    <option value="sales-desc">Sales (High &rarr; Low)</option>
+                    <option value="name-asc">Name (A-Z)</option>
+                </select>
+            </div>
+
+            <!-- Filter Buttons -->
+            <div class="flex items-center space-x-1 text-xs">
+                <button onclick="filterStores('all')" id="btn-all" class="px-2.5 py-1 rounded font-medium bg-slate-900 text-white transition">All ({{ stores|length }})</button>
+                <button onclick="filterStores('red')" id="btn-red" class="px-2.5 py-1 rounded font-medium text-rose-700 bg-rose-50 border border-rose-200/70 hover:bg-rose-100 transition">Action ({{ red_count }})</button>
+                <button onclick="filterStores('amber')" id="btn-amber" class="px-2.5 py-1 rounded font-medium text-amber-700 bg-amber-50 border border-amber-200/70 hover:bg-amber-100 transition">Watch ({{ amber_count }})</button>
+                <button onclick="filterStores('green')" id="btn-green" class="px-2.5 py-1 rounded font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/70 hover:bg-emerald-100 transition">Optimal ({{ green_count }})</button>
+            </div>
         </div>
     </div>
 
-    <!-- 12-Store Grid -->
+    <!-- Store Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="store-grid">
         {% for s in stores %}
-        <a href="/store/{{ s.store_id }}" class="store-card block bg-white rounded-lg border border-slate-200 p-4 relative group" data-status="{{ s.rag_status }}">
+        <a href="/store/{{ s.store_id }}" class="store-card block bg-white rounded-lg border border-slate-200 p-4 relative group hover:border-slate-400 transition" 
+           data-status="{{ s.rag_status }}"
+           data-id="{{ s.store_id }}"
+           data-name="{{ s.store_name }}"
+           data-margin="{{ s.margin_this_month }}"
+           data-waste="{{ s.waste_pct }}"
+           data-sales="{{ s.total_sales_gbp }}">
             
             <!-- Store Title & Badge -->
             <div class="flex items-start justify-between gap-2 mb-2">
@@ -116,7 +144,10 @@
 
 {% block scripts %}
 <script>
+    let activeFilter = 'all';
+
     function filterStores(status) {
+        activeFilter = status;
         ['all', 'red', 'amber', 'green'].forEach(s => {
             const btn = document.getElementById(`btn-${s}`);
             if (btn) btn.className = 'px-2.5 py-1 rounded font-medium text-slate-600 hover:text-slate-900 transition';
@@ -125,9 +156,37 @@
         if (activeBtn) {
             activeBtn.className = 'px-2.5 py-1 rounded font-medium bg-slate-900 text-white transition';
         }
+        applyFilter();
+    }
+
+    function applyFilter() {
         document.querySelectorAll('.store-card').forEach(card => {
-            card.style.display = (status === 'all' || card.getAttribute('data-status') === status) ? 'block' : 'none';
+            card.style.display = (activeFilter === 'all' || card.getAttribute('data-status') === activeFilter) ? 'block' : 'none';
         });
+    }
+
+    function sortStoreCards(sortKey) {
+        const grid = document.getElementById('store-grid');
+        const cards = Array.from(grid.querySelectorAll('.store-card'));
+
+        cards.sort((a, b) => {
+            if (sortKey === 'margin-desc') {
+                return (parseFloat(b.getAttribute('data-margin')) || 0) - (parseFloat(a.getAttribute('data-margin')) || 0);
+            } else if (sortKey === 'margin-asc') {
+                return (parseFloat(a.getAttribute('data-margin')) || 0) - (parseFloat(b.getAttribute('data-margin')) || 0);
+            } else if (sortKey === 'waste-desc') {
+                return (parseFloat(b.getAttribute('data-waste')) || 0) - (parseFloat(a.getAttribute('data-waste')) || 0);
+            } else if (sortKey === 'sales-desc') {
+                return (parseFloat(b.getAttribute('data-sales')) || 0) - (parseFloat(a.getAttribute('data-sales')) || 0);
+            } else if (sortKey === 'name-asc') {
+                return a.getAttribute('data-name').localeCompare(b.getAttribute('data-name'));
+            } else {
+                return a.getAttribute('data-id').localeCompare(b.getAttribute('data-id'));
+            }
+        });
+
+        cards.forEach(c => grid.appendChild(c));
+        applyFilter();
     }
 </script>
 {% endblock %}
