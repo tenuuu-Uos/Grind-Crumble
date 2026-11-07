@@ -1,25 +1,97 @@
 import os
 import io
 import json
-import ssl
-import urllib.request
-import urllib.error
-import certifi
+import re
 import pandas as pd
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Tuple
 from app.config import DATA_DIR, get_settings
 
 try:
-    import httpx
+    from google import genai
 except ImportError:
-    httpx = None
+    genai = None  # pip install google-genai
 
 AI_INSIGHTS_FILE = DATA_DIR / "ai_store_insights.json"
+
+# Models are tried in order. Override with an env var, e.g.
+#   GEMINI_MODELS="models/gemini-3.1-pro-preview-preview,gemini-2.5-flash"
+GEMINI_MODELS = [
+    m.strip()
+    for m in os.environ.get(
+        "GEMINI_MODELS", "models/gemini-3.5-flash-lite"
+    ).split(",")
+    if m.strip()
+]
+
 
 class DataManager:
     _cache = {}
 
+    # ------------------------------------------------------------------
+    # Gemini helpers
+    # ------------------------------------------------------------------
+    @classmethod
+    def _resolve_key(cls, api_key: str = "") -> str:
+        """Priority: passed key -> settings.json -> GEMINI_API_KEY env var."""
+        return (
+            (api_key or "").strip()
+            or str(get_settings().get("gemini_api_key") or "").strip()
+            or os.environ.get("GEMINI_API_KEY", "").strip()
+        )
+
+    @classmethod
+    def _gemini_generate(
+        cls,
+        prompt: str,
+        api_key: str = "",
+        max_tokens: int = 800,
+        json_mode: bool = False,
+        timeout: float = 20.0,
+    ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+        """
+        Calls Gemini using the google-genai Interactions API.
+        Tries each model in GEMINI_MODELS in turn.
+        Returns (text, model_used, error_message). Never raises.
+        """
+        key = cls._resolve_key(api_key)
+        if not key:
+            return None, None, "No API key configured"
+        if genai is None:
+            return None, None, "The 'google-genai' package is not installed (pip install google-genai)"
+
+        last_error = "Unknown error"
+        client = genai.Client(api_key=key)
+
+        for model in GEMINI_MODELS:
+            kwargs: Dict[str, Any] = {
+                "model": model,
+                "input": prompt,
+            }
+            if json_mode:
+                kwargs["response_format"] = {
+                    "type": "text",
+                    "mime_type": "application/json"
+                }
+
+            try:
+                interaction = client.interactions.create(**kwargs)
+                text = (interaction.output_text or "").strip()
+                if text:
+                    return text, model, None
+
+                last_error = f"{model}: empty response output_text"
+            except Exception as e:
+                msg = str(e)
+                last_error = f"{model}: {type(e).__name__} - {msg[:200]}"
+                if "api key" in msg.lower() or "unauthorized" in msg.lower():
+                    break  # Bad key: other models won't help
+
+        return None, None, last_error
+
+    # ------------------------------------------------------------------
+    # AI insight persistence
+    # ------------------------------------------------------------------
     @classmethod
     def get_ai_insights(cls) -> Dict[str, Any]:
         """Loads cached AI-generated store insights."""
@@ -37,6 +109,9 @@ class DataManager:
         with open(AI_INSIGHTS_FILE, "w", encoding="utf-8") as f:
             json.dump(insights, f, indent=2)
 
+    # ------------------------------------------------------------------
+    # Data loading
+    # ------------------------------------------------------------------
     @classmethod
     def get_raw_data(cls, reload: bool = False) -> Dict[str, pd.DataFrame]:
         """Loads and caches core CSV datasets."""
@@ -59,6 +134,9 @@ class DataManager:
     def invalidate_cache(cls):
         cls._cache = {}
 
+    # ------------------------------------------------------------------
+    # Store management
+    # ------------------------------------------------------------------
     @classmethod
     def add_new_store(cls, store_data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -383,6 +461,9 @@ class DataManager:
             "settings": settings
         }
 
+    # ------------------------------------------------------------------
+    # Upload + Gemini analysis
+    # ------------------------------------------------------------------
     @classmethod
     def process_upload_with_gemini(cls, file_content: bytes, filename: str, api_key: str = "") -> Dict[str, Any]:
         """Cleanses uploaded CSV, merges with stores, and calls Gemini API."""
@@ -459,8 +540,8 @@ class DataManager:
 
     @classmethod
     def call_gemini_api(cls, df: pd.DataFrame, filename: str, api_key: str = "") -> Dict[str, Any]:
-        """Calls Gemini API (gemini-1.5-flash / gemini-2.0-flash) or falls back to local rules."""
-        key = api_key or get_settings().get("gemini_api_key", "")
+        """Analyses an uploaded dataset with Gemini, or falls back to local rules."""
+        key = cls._resolve_key(api_key)
         summary_sample = df.head(15).to_dict(orient="records")
 
         # Fallback intelligent local rule analysis if no API key provided
@@ -475,7 +556,7 @@ class DataManager:
                 sales = float(row.get("total_sales_gbp", 1))
                 rent = float(row.get("rent_gbp", 0))
                 occ = (rent / max(1.0, sales)) * 100
-                
+
                 if w_rate > 15:
                     insights[sid] = {
                         "alert": f"High waste alert: Food waste is running at {w_rate:.1f}% vs 9.0% benchmark.",
@@ -504,7 +585,7 @@ class DataManager:
 
         prompt = f"""
 You are an operational intelligence analyst for Grind & Crumb, a café chain.
-Analyze this newly uploaded dataset '{filename}' (first 15 rows sample: {json.dumps(summary_sample)}).
+Analyze this newly uploaded dataset '{filename}' (first 15 rows sample: {json.dumps(summary_sample, default=str)}).
 
 For any store that shows issues (waste > 9%, fixed rent > 25%, negative/low margins, or new store launch), produce a JSON object with store IDs as keys:
 {{
@@ -515,59 +596,47 @@ For any store that shows issues (waste > 9%, fixed rent > 25%, negative/low marg
 }}
 Return ONLY valid JSON.
 """
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"}
-        }
-
-        try:
-            parsed_json = None
-            if httpx:
-                with httpx.Client(timeout=15.0) as client:
-                    resp = client.post(url, json=payload, headers={"Content-Type": "application/json"})
-                    if resp.status_code == 200:
-                        resp_data = resp.json()
-                        text_out = resp_data["candidates"][0]["content"]["parts"][0]["text"]
-                        parsed_json = json.loads(text_out)
-            else:
-                ssl_context = None
-                try:
-                    ssl_context = ssl.create_default_context(cafile=certifi.where())
-                except Exception:
-                    pass
-                req = urllib.request.Request(
-                    url,
-                    data=json.dumps(payload).encode("utf-8"),
-                    headers={"Content-Type": "application/json"}
-                )
-                with urllib.request.urlopen(req, timeout=15.0, context=ssl_context) as resp:
-                    resp_data = json.loads(resp.read().decode("utf-8"))
-                    text_out = resp_data["candidates"][0]["content"]["parts"][0]["text"]
-                    parsed_json = json.loads(text_out)
-
-            if parsed_json:
-                current_insights = cls.get_ai_insights()
-                current_insights.update(parsed_json)
-                cls.save_ai_insights(current_insights)
-
-                return {
-                    "status": "ai_analyzed",
-                    "message": f"Gemini API analyzed {len(df)} rows and generated new operational insights for {len(parsed_json)} stores!",
-                    "insights_generated": list(parsed_json.keys())
-                }
-        except Exception as e:
+        text, model, err = cls._gemini_generate(
+            prompt, key, max_tokens=1500, json_mode=True, timeout=30.0
+        )
+        if not text:
             return {
                 "status": "api_error",
-                "message": f"Gemini API notice: {str(e)}",
+                "message": f"Gemini API notice: {err}",
                 "fallback": "Standard operational rules applied to store cards."
             }
 
+        # Strip markdown fences if the model added them despite JSON mode
+        clean = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip())
+        try:
+            parsed = json.loads(clean)
+            if not isinstance(parsed, dict):
+                raise ValueError("Expected a JSON object")
+        except (json.JSONDecodeError, ValueError):
+            return {
+                "status": "api_error",
+                "message": f"Gemini ({model}) returned invalid JSON.",
+                "fallback": "Standard operational rules applied to store cards."
+            }
+
+        current_insights = cls.get_ai_insights()
+        current_insights.update(parsed)
+        cls.save_ai_insights(current_insights)
+
+        return {
+            "status": "ai_analyzed",
+            "model": model,
+            "message": f"Gemini analyzed {len(df)} rows and generated new operational insights for {len(parsed)} stores!",
+            "insights_generated": list(parsed.keys())
+        }
+
+    # ------------------------------------------------------------------
+    # Feature 1: "Explain this store"
+    # ------------------------------------------------------------------
     @classmethod
     def explain_store(cls, store_id: str) -> Dict[str, Any]:
         """
-        Feature 1: "Explain this store" summary
-        Generates a plain-English diagnosis and consultation recommendation, e.g.:
+        Generates a plain-English diagnosis and recommendation, e.g.:
         'Hull Paragon margin fell 3 points in March. Waste is 2.3x the chain average and delivery share rose to 21%.
         Likely cause: over-ordering. Suggested action: tighten par levels.'
         """
@@ -577,8 +646,6 @@ Return ONLY valid JSON.
             return {"error": f"Store {store_id} not found."}
 
         card = detail["card"]
-        pnl_df = cls.get_raw_data()["pnl"]
-        store_pnl = pnl_df[pnl_df["store_id"] == store_id].sort_values("month") if not pnl_df.empty else pd.DataFrame()
 
         # Build context from metrics
         name = card["store_name"]
@@ -590,9 +657,8 @@ Return ONLY valid JSON.
         occ = card["occupancy_pct"]
         staff_gap = card["peak_staff_gap"]
 
-        # Check API key if Gemini can enhance this
         settings = get_settings()
-        key = settings.get("gemini_api_key", "").strip()
+        key = cls._resolve_key()
 
         # Construct rule-based diagnosis first
         findings = []
@@ -648,7 +714,10 @@ Return ONLY valid JSON.
             suggested_action = "; ".join(actions) if actions else "conduct an operational audit with the store manager"
             summary = f"{name}: {findings_text}. Likely cause: {likely_cause}. Suggested action: {suggested_action}."
 
-        # If Gemini API key is configured, use Gemini for an even more conversational analyst briefing
+        engine = "rules"
+        gemini_error = None
+
+        # If a Gemini key is configured, ask for a more conversational analyst briefing
         if key:
             prompt = f"""
 You are an expert hospitality consultant for Grind & Crumb café chain.
@@ -656,7 +725,7 @@ Generate a concise, punchy 3-sentence operational explanation for this store:
 Store: {name} ({store_id}, {card['city']}, {card['format']} format, Mgr: {card['manager']})
 Margin: {margin}% (Change vs last month: {margin_delta}%)
 Waste Rate: {waste}% (Chain benchmark is {settings.get('waste_benchmark_pct', 9.0)}%, Multiple: {waste_mult}x)
-Occupancy: {occ}% (Ceiling is 25%)
+Occupancy: {occ}% (Ceiling is {settings.get('occupancy_ceiling_pct', 25.0)}%)
 Delivery Share: {deliv_share}%
 Peak Staff Deficit: {staff_gap} baristas
 
@@ -666,92 +735,57 @@ Sentence 2: Likely operational cause.
 Sentence 3: Suggested immediate action for store manager.
 Do not use markdown headers, just plain text.
 """
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
-            payload = {
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"temperature": 0.2, "maxOutputTokens": 200}
-            }
-            try:
-                if httpx:
-                    with httpx.Client(timeout=8.0) as client:
-                        resp = client.post(url, json=payload, headers={"Content-Type": "application/json"})
-                        if resp.status_code == 200:
-                            resp_data = resp.json()
-                            ai_text = resp_data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                            if ai_text:
-                                summary = ai_text
-                else:
-                    ssl_context = None
-                    try:
-                        ssl_context = ssl.create_default_context(cafile=certifi.where())
-                    except Exception:
-                        pass
-                    req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"})
-                    with urllib.request.urlopen(req, timeout=8.0, context=ssl_context) as resp:
-                        resp_data = json.loads(resp.read().decode("utf-8"))
-                        ai_text = resp_data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                        if ai_text:
-                            summary = ai_text
-            except Exception:
-                pass # Use rule-based summary
+            ai_text, _, gemini_error = cls._gemini_generate(prompt, key, max_tokens=400, timeout=15.0)
+            if ai_text:
+                summary = ai_text
+                engine = "gemini-ai"
+            else:
+                print(f"[explain_store] Gemini failed, using rule-based summary: {gemini_error}")
 
-        return {
+        result = {
             "store_id": store_id,
             "store_name": name,
             "summary": summary,
             "findings": findings,
-            "likely_cause": likely_cause if 'likely_cause' in locals() else "",
-            "suggested_action": suggested_action if 'suggested_action' in locals() else ""
+            "likely_cause": likely_cause,
+            "suggested_action": suggested_action,
+            "engine": engine,
         }
+        if gemini_error:
+            result["gemini_error"] = gemini_error
+        return result
 
+    # ------------------------------------------------------------------
+    # Connection test
+    # ------------------------------------------------------------------
     @classmethod
     def test_gemini_connection(cls, api_key: str = "") -> Dict[str, Any]:
         """Tests whether a Gemini API key is valid by sending a minimal ping."""
-        key = (api_key or "").strip() or get_settings().get("gemini_api_key", "").strip() or os.environ.get("GEMINI_API_KEY", "").strip()
+        key = cls._resolve_key(api_key)
         if not key:
             return {"valid": False, "message": "No API key configured. Enter a Gemini API key in Settings."}
 
-        models_to_test = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
-        last_error = "Unknown error"
-        for model in models_to_test:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
-            payload = {
-                "contents": [{"parts": [{"text": "Reply with 'Connected successfully'"}]}],
-                "generationConfig": {"temperature": 0.0, "maxOutputTokens": 20}
+        text, model, err = cls._gemini_generate(
+            "Reply with 'Connected successfully'", key, max_tokens=20, timeout=10.0
+        )
+        if text:
+            return {
+                "valid": True,
+                "model": model,
+                "message": f"Successfully connected to Google Gemini ({model})."
             }
-            try:
-                if httpx:
-                    with httpx.Client(timeout=10.0) as client:
-                        resp = client.post(url, json=payload, headers={"Content-Type": "application/json"})
-                        if resp.status_code == 200:
-                            return {"valid": True, "model": model, "message": f"Successfully connected to Google Gemini ({model}) using Settings API key!"}
-                        else:
-                            try:
-                                err_data = resp.json()
-                                last_error = err_data.get("error", {}).get("message", f"HTTP {resp.status_code}")
-                            except Exception:
-                                last_error = f"HTTP {resp.status_code}"
-                else:
-                    ssl_context = None
-                    try:
-                        ssl_context = ssl.create_default_context(cafile=certifi.where())
-                    except Exception:
-                        pass
-                    req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"})
-                    with urllib.request.urlopen(req, timeout=10.0, context=ssl_context) as resp:
-                        return {"valid": True, "model": model, "message": f"Successfully connected to Google Gemini ({model}) using Settings API key!"}
-            except Exception as e:
-                last_error = str(e)
+        return {"valid": False, "message": f"Gemini connection failed: {err}"}
 
-        return {"valid": False, "message": f"Gemini connection failed: {last_error}"}
-
+    # ------------------------------------------------------------------
+    # Q&A
+    # ------------------------------------------------------------------
     @classmethod
     def ask_data_question(cls, question: str, api_key: Optional[str] = None) -> Dict[str, Any]:
         """
         AI-Powered Operational Q&A:
-        Passes the question along with comprehensive store data and operational records to Google Gemini API
-        using the API key configured in Settings (or passed directly).
-        Includes intelligent grounded analytical fallback if API key is not present or offline.
+        Passes the question along with store data to Gemini using the API key from
+        Settings (or passed directly). Falls back to a grounded rule-based engine
+        if there is no key or the API is unreachable.
         """
         q = question.strip()
         if not q:
@@ -759,19 +793,15 @@ Do not use markdown headers, just plain text.
 
         data = cls.get_raw_data()
         pnl_df = data["pnl"]
-        stores_df = data["stores"]
         cards = cls.get_all_store_cards()
 
-        # Check Gemini API Key: priority is passed api_key -> settings.json -> os.environ
         settings = get_settings()
-        key = (api_key or "").strip() or settings.get("gemini_api_key", "").strip() or os.environ.get("GEMINI_API_KEY", "").strip()
+        key = cls._resolve_key(api_key or "")
 
-        # Build comprehensive real data context for Gemini
         latest_m = pnl_df["month"].max() if not pnl_df.empty else "2026-06"
-        prev_m = sorted(pnl_df["month"].unique())[-2] if not pnl_df.empty and len(pnl_df["month"].unique()) > 1 else latest_m
 
         gemini_error = None
-        # 1. Try Gemini API first so Gemini answers any question given
+        # 1. Try Gemini first so it can answer any question
         if key:
             cards_summary = [
                 {
@@ -824,78 +854,33 @@ INSTRUCTIONS:
 - Provide practical operational action recommendations where relevant.
 - Format key terms with markdown bold (**like this**). Do not use top-level markdown headers (#), keep it readable for store managers.
 """
-
-            models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
-            for model_name in models_to_try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
-                payload = {
-                    "contents": [{"parts": [{"text": system_context}]}],
-                    "generationConfig": {"temperature": 0.2, "maxOutputTokens": 800}
+            answer, model_name, gemini_error = cls._gemini_generate(
+                system_context, key, max_tokens=1500, timeout=25.0
+            )
+            if answer:
+                return {
+                    "question": question,
+                    "answer": answer,
+                    "engine": "gemini-ai",
+                    "model": model_name,
+                    "key_used": True
                 }
 
-                try:
-                    if httpx:
-                        with httpx.Client(timeout=15.0) as client:
-                            resp = client.post(url, json=payload, headers={"Content-Type": "application/json"})
-                            if resp.status_code == 200:
-                                resp_data = resp.json()
-                                candidates = resp_data.get("candidates", [])
-                                if candidates:
-                                    parts = candidates[0].get("content", {}).get("parts", [])
-                                    if parts and "text" in parts[0]:
-                                        answer = parts[0]["text"].strip()
-                                        if answer:
-                                            return {
-                                                "question": question,
-                                                "answer": answer,
-                                                "engine": "gemini-ai",
-                                                "model": model_name,
-                                                "key_used": True
-                                            }
-                            else:
-                                try:
-                                    err_json = resp.json()
-                                    gemini_error = err_json.get("error", {}).get("message", f"HTTP {resp.status_code}")
-                                except Exception:
-                                    gemini_error = f"HTTP {resp.status_code}"
-                    else:
-                        ssl_context = None
-                        try:
-                            ssl_context = ssl.create_default_context(cafile=certifi.where())
-                        except Exception:
-                            pass
-                        req = urllib.request.Request(
-                            url,
-                            data=json.dumps(payload).encode("utf-8"),
-                            headers={"Content-Type": "application/json"}
-                        )
-                        with urllib.request.urlopen(req, timeout=15.0, context=ssl_context) as resp:
-                            resp_data = json.loads(resp.read().decode("utf-8"))
-                            answer = resp_data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                            if answer:
-                                return {
-                                    "question": question,
-                                    "answer": answer,
-                                    "engine": "gemini-ai",
-                                    "model": model_name,
-                                    "key_used": True
-                                }
-                except Exception as e:
-                    gemini_error = str(e)
-
-        # 2. Comprehensive Grounded Operational Analysis Engine (if API key not yet entered or fallback)
+        # 2. Grounded operational analysis engine (no key, or Gemini failed)
         note_suffix = ""
         if key and gemini_error:
-            note_suffix = f"\n\n*(Note: Gemini API key from Settings was active, but API request returned: {gemini_error}. Answering with verified chain operational data).*"
+            note_suffix = f"\n\n*(Note: Gemini request failed: {gemini_error}. Answering with verified chain operational data.)*"
         elif not key:
-            note_suffix = "\n\n*(Tip: Add your Google Gemini API Key in Settings to enable live generative AI responses).*"
+            note_suffix = "\n\n*(Tip: Add your Google Gemini API Key in Settings to enable live generative AI responses.)*"
+
         ql = q.lower()
+
         if "delivery" in ql and any(w in ql for w in ["loss", "lost", "unprofitable", "losing", "money", "margin"]):
             latest_pnl = pnl_df[pnl_df["month"] == latest_m].copy()
             latest_pnl["cogs_deliv"] = latest_pnl["food_cost_gbp"] * (latest_pnl["sales_delivery_gbp"] / latest_pnl["total_sales_gbp"])
             latest_pnl["labour_deliv"] = latest_pnl["labour_cost_gbp"] * (latest_pnl["sales_delivery_gbp"] / latest_pnl["total_sales_gbp"])
             latest_pnl["deliv_profit"] = latest_pnl["sales_delivery_gbp"] - (
-                latest_pnl["cogs_deliv"] + latest_pnl["delivery_commission_gbp"] + 
+                latest_pnl["cogs_deliv"] + latest_pnl["delivery_commission_gbp"] +
                 latest_pnl["delivery_packaging_gbp"] + latest_pnl["labour_deliv"]
             )
             losing = latest_pnl[latest_pnl["deliv_profit"] < 0]
@@ -925,13 +910,13 @@ INSTRUCTIONS:
         if any(w in ql for w in ["highest waste", "most waste", "worst waste"]):
             worst_waste = sorted(cards, key=lambda x: x["waste_pct"], reverse=True)[:3]
             items = [f"**{c['store_name']}** ({c['waste_pct']}%, £{c['waste_cost_gbp']:,} cost)" for c in worst_waste]
-            answer = f"The 3 stores with the highest food waste are:\n\n1. {items[0]}\n2. {items[1]}\n3. {items[2]}\n\nThe chain benchmark is 9.0%. Hull Paragon is the primary operational priority."
+            answer = "The stores with the highest food waste are:\n\n" + "\n".join(f"{i + 1}. {item}" for i, item in enumerate(items)) + "\n\nThe chain benchmark is 9.0%. Hull Paragon is the primary operational priority."
             return {"question": question, "answer": answer + note_suffix, "engine": "grounded-engine", "key_used": bool(key)}
 
         if any(w in ql for w in ["best", "highest margin", "most profitable", "top store"]):
             top_stores = sorted(cards, key=lambda x: x["margin_this_month"], reverse=True)[:3]
             items = [f"**{c['store_name']}** ({c['margin_this_month']}% margin, £{c['store_profit_gbp']:,} profit)" for c in top_stores]
-            answer = f"The top 3 most profitable locations are:\n\n1. {items[0]}\n2. {items[1]}\n3. {items[2]}\n\nBoth Sheffield Division Street and York Stonegate benefit from manageable rent commitments and strict labour par management."
+            answer = "The top most profitable locations are:\n\n" + "\n".join(f"{i + 1}. {item}" for i, item in enumerate(items)) + "\n\nThese stores benefit from manageable rent commitments and strict labour par management."
             return {"question": question, "answer": answer + note_suffix, "engine": "grounded-engine", "key_used": bool(key)}
 
         if any(w in ql for w in ["staff", "rota", "understaff", "gap"]):
@@ -941,9 +926,9 @@ INSTRUCTIONS:
             answer = f"{len(gaps)} stores currently face counter deficits during the 11:00-14:00 lunch rush:\n\n" + "\n".join([f"- {i}" for i in items]) + "\n\n**Action**: Reschedule prep shifts before 11:00am so all staff are on customer-facing assembly during peak volume."
             return {"question": question, "answer": answer + note_suffix, "engine": "grounded-engine", "key_used": bool(key)}
 
-        # Dynamic fallback across the entire network
+        # Generic fallback across the entire network
         if key:
-            answer = f"Grind & Crumb monitors {len(cards)} stores across Northern England with real-time operational data.\n\n*(Gemini API note: request with Settings key returned: {gemini_error or 'Connection offline'}. Try asking about store delivery margins, Hull Paragon waste, Leeds Briggate cannibalisation, or peak rush staffing).*"
+            answer = f"Grind & Crumb monitors {len(cards)} stores across Northern England with real-time operational data.\n\n*(Gemini request failed: {gemini_error or 'connection offline'}. Meanwhile, try asking about delivery margins, Hull Paragon waste, Leeds Briggate cannibalisation, or peak rush staffing.)*"
         else:
-            answer = f"Grind & Crumb monitors {len(cards)} stores across Northern England. You can ask any question about store performance, delivery costs, waste rates, or staffing. (Add your Gemini API Key in Settings to enable free-form natural language answers to any custom question)."
+            answer = f"Grind & Crumb monitors {len(cards)} stores across Northern England. You can ask any question about store performance, delivery costs, waste rates, or staffing. (Add your Gemini API Key in Settings to enable free-form natural language answers to any custom question.)"
         return {"question": question, "answer": answer, "engine": "grounded-engine", "key_used": bool(key)}
