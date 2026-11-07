@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gc: {
+                            gold: '#c59b27',
+                            dark: '#1e2022',
+                            cream: '#f9f6f0',
+                            roast: '#3c2a21',
+                            amber: '#d97706',
+                            emerald: '#059669',
+                            rose: '#e11d48'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/static/css/custom.css">
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col font-sans antialiased">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-gc-dark text-white border-b border-neutral-800 sticky top-0 z-50 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                
+                <!-- Logo & Brand -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg bg-amber-600 flex items-center justify-center font-bold text-xl shadow text-white">
+                        <i data-lucide="coffee"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="font-extrabold text-lg tracking-tight text-white">Grind & Crumb</span>
+                            <span class="text-xs bg-amber-500/20 text-amber-400 font-semibold px-2 py-0.5 rounded border border-amber-500/30">Pulse Intelligence</span>
+                        </div>
+                        <p class="text-xs text-neutral-400 hidden sm:block">12-Store Unified Command Center & Operational Engine</p>
+                    </div>
+                </div>
+
+                <!-- Center Controls: Mode Toggle & Sync Status -->
+                <div class="flex items-center space-x-3">
+                    <!-- iPad Mode vs C-Suite Mode -->
+                    <a href="/" id="btn-desktop-view" class="px-3 py-1.5 text-xs font-medium rounded-md transition flex items-center space-x-1.5 {% if request.url.path == '/' %}bg-neutral-800 text-amber-400 border border-neutral-700{% else %}text-neutral-400 hover:text-white{% endif %}">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                        <span class="hidden md:inline">C-Suite Review</span>
+                    </a>
+                    <a href="/ipad" id="btn-ipad-view" class="px-3 py-1.5 text-xs font-medium rounded-md transition flex items-center space-x-1.5 {% if request.url.path == '/ipad' %}bg-amber-600 text-white font-semibold shadow{% else %}text-neutral-400 hover:text-white bg-neutral-800/60 border border-neutral-700{% endif %}">
+                        <i data-lucide="tablet" class="w-4 h-4"></i>
+                        <span>Counter iPad Mode</span>
+                    </a>
+
+                    <!-- ETL Auto-Sync Button -->
+                    <button onclick="triggerETLSync()" id="btn-etl-sync" title="Trigger SQLite ETL Batch Sync" class="bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs px-2.5 py-1.5 rounded border border-neutral-700 flex items-center space-x-1">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="etl-sync-icon"></i>
+                        <span class="hidden lg:inline text-xs">ETL Sync</span>
+                    </button>
+                </div>
+
+                <!-- Right Side: RBAC Persona Switcher -->
+                <div class="flex items-center space-x-3">
+                    <div class="text-right hidden sm:block">
+                        <div class="text-xs font-semibold text-white flex items-center justify-end space-x-1">
+                            <span id="header-user-name">{{ user.name }}</span>
+                            <span class="text-[10px] px-1.5 py-0.2 rounded font-mono uppercase bg-amber-500/20 text-amber-300">{{ user.role }}</span>
+                        </div>
+                        <div class="text-[11px] text-neutral-400 truncate max-w-[200px]" id="header-user-title">{{ user.title }}</div>
+                    </div>
+
+                    <!-- Persona Selector Dropdown -->
+                    <div class="relative">
+                        <select id="persona-selector" onchange="switchPersona(this.value)" class="bg-neutral-800 text-xs text-white border border-neutral-700 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer">
+                            {% for p in personas %}
+                            <option value="{{ p.user_id }}" {% if p.user_id == user.user_id %}selected{% endif %}>
+                                {{ p.name }} ({{ p.title.split('-')[0] }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- RBAC Restriction Notice Banner for Store Managers -->
+        {% if not user.can_view_all_stores %}
+        <div class="bg-amber-500/10 border-t border-b border-amber-500/30 px-4 py-1.5 text-xs text-amber-300 flex items-center justify-between">
+            <div class="flex items-center space-x-2 max-w-7xl mx-auto w-full">
+                <i data-lucide="shield-alert" class="w-4 h-4 text-amber-400"></i>
+                <span><strong>Store Manager RBAC Mode:</strong> You are viewing restricted operational metrics for <strong>{{ user.store_name }} ({{ user.store_id }})</strong>. Chain-wide metrics are restricted to Regional Ops and Executives.</span>
+            </div>
+        </div>
+        {% endif %}
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0">
+            <div>
+                <strong>Grind & Crumb Performance Pulse Dashboard</strong> &bull; SRS-GC-2026-V1.0
+            </div>
+            <div class="flex items-center space-x-4">
+                <span>Database: <code class="bg-slate-100 px-1 py-0.5 rounded text-slate-700">grind_and_crumb.db</code></span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800">
+                    <span class="w-1.5 h-1.5 mr-1.5 bg-emerald-500 rounded-full animate-pulse"></span> Views Synced
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Initialize Lucide icons -->
+    <script>
+        lucide.createIcons();
+        
+        async function switchPersona(userId) {
+            try {
+                const res = await fetch('/api/auth/switch', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({user_id: userId})
+                });
+                if (res.ok) {
+                    window.location.reload();
+                }
+            } catch (err) {
+                console.error("Failed to switch persona", err);
+            }
+        }
+
+        async function triggerETLSync() {
+            const icon = document.getElementById('etl-sync-icon');
+            if (icon) icon.classList.add('animate-spin');
+            try {
+                const res = await fetch('/api/etl/sync', {method: 'POST'});
+                const data = await res.json();
+                alert(`ETL Auto-Sync Complete in ${data.details.duration_seconds}s! SQLite views refreshed.`);
+                window.location.reload();
+            } catch (err) {
+                alert("ETL Sync failed: " + err);
+            } finally {
+                if (icon) icon.classList.remove('animate-spin');
+            }
+        }
+    </script>
+    <script src="/static/js/dashboard.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

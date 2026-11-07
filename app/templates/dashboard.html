@@ -1,0 +1,731 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Strategic Context Header -->
+    <div class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                    Active Strategic Lens
+                </span>
+                <span class="text-xs text-slate-500">12 Stores &bull; FY2025/2026 Audit Period</span>
+            </div>
+            <h1 class="text-2xl font-black text-slate-900 mt-1">Operational Intelligence Command Center</h1>
+            <p class="text-sm text-slate-600 mt-0.5">
+                Diagnosing the chain's central paradox: why revenue growth is not translating into profit, and recovering up to £150,000+ in annual earnings.
+            </p>
+        </div>
+
+        <!-- Global Filter Controls -->
+        <div class="flex flex-wrap items-center gap-3">
+            <div>
+                <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Store Filter</label>
+                <select id="global-store-filter" onchange="onGlobalFilterChange()" class="mt-0.5 text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 font-medium text-slate-800 focus:ring-amber-500 focus:border-amber-500 cursor-pointer">
+                    <option value="">All 12 Locations (Chain-wide)</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Audit Period</label>
+                <select id="global-month-filter" onchange="onGlobalFilterChange()" class="mt-0.5 text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 font-medium text-slate-800 focus:ring-amber-500 focus:border-amber-500 cursor-pointer">
+                    <option value="">Full 12-Month Year</option>
+                    <option value="2025-07">July 2025</option>
+                    <option value="2025-08">August 2025</option>
+                    <option value="2025-09">September 2025</option>
+                    <option value="2025-10">October 2025</option>
+                    <option value="2025-11">November 2025</option>
+                    <option value="2025-12">December 2025</option>
+                    <option value="2026-01">January 2026</option>
+                    <option value="2026-02">February 2026</option>
+                    <option value="2026-03">March 2026</option>
+                    <option value="2026-04">April 2026</option>
+                    <option value="2026-05">May 2026</option>
+                    <option value="2026-06">June 2026</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Executive KPI Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Revenue Card -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+            <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Network Revenue</div>
+            <div class="text-2xl font-black text-slate-900 mt-1" id="kpi-total-sales">£8.23M</div>
+            <div class="text-xs text-emerald-600 mt-1 flex items-center">
+                <i data-lucide="trending-up" class="w-3.5 h-3.5 mr-1"></i> +8.4% YoY Volume Growth
+            </div>
+            <div class="text-[11px] text-slate-400 mt-2">143,000+ Sample Transactions</div>
+        </div>
+
+        <!-- Operating Margin Paradox -->
+        <div class="bg-white p-5 rounded-xl border border-rose-200 bg-rose-50/20 shadow-sm relative overflow-hidden">
+            <div class="text-xs font-semibold text-rose-700 uppercase tracking-wider flex items-center justify-between">
+                <span>Operating Margin Paradox</span>
+                <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+            </div>
+            <div class="text-2xl font-black text-rose-600 mt-1" id="kpi-profit-margin">9.4%</div>
+            <div class="text-xs text-rose-700 mt-1 flex items-center">
+                <i data-lucide="alert-triangle" class="w-3.5 h-3.5 mr-1"></i> Dragged by S07 (-£50.3k loss)
+            </div>
+            <div class="text-[11px] text-slate-500 mt-2">Fixed Occupancy Trap: S07 @ 40.2% rent</div>
+        </div>
+
+        <!-- Uncaptured Walkaway Loss -->
+        <div class="bg-white p-5 rounded-xl border border-amber-200 bg-amber-50/20 shadow-sm">
+            <div class="text-xs font-semibold text-amber-700 uppercase tracking-wider">Lost Walkout Revenue</div>
+            <div class="text-2xl font-black text-amber-700 mt-1" id="kpi-walkout-loss">£84,200</div>
+            <div class="text-xs text-amber-800 mt-1 flex items-center">
+                <i data-lucide="clock" class="w-3.5 h-3.5 mr-1"></i> 11am-2pm Staffing Deficit
+            </div>
+            <div class="text-[11px] text-slate-500 mt-2">3 staff on shift vs 5 needed at peak rush</div>
+        </div>
+
+        <!-- Delivery Bleed & Sub-£8 Burden -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+            <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Sub-£8 Delivery Burden</div>
+            <div class="text-2xl font-black text-slate-900 mt-1" id="kpi-sub8-share">29.0%</div>
+            <div class="text-xs text-slate-600 mt-1 flex items-center">
+                <i data-lucide="package" class="w-3.5 h-3.5 mr-1"></i> £0.79 net margin per single coffee
+            </div>
+            <div class="text-[11px] text-slate-400 mt-2">Jamming counter during lunch peak</div>
+        </div>
+    </div>
+
+    <!-- Tabbed Navigation Across All 6 FR Modules -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="border-b border-slate-200 bg-slate-50/50 px-4">
+            <nav class="flex space-x-2 sm:space-x-6 overflow-x-auto text-xs font-medium py-2.5" id="module-tabs">
+                <button onclick="switchTab('tab-pnl')" id="tab-btn-pnl" class="tab-btn active px-3 py-2 whitespace-nowrap rounded-lg flex items-center space-x-1.5 transition">
+                    <i data-lucide="pie-chart" class="w-4 h-4 text-amber-600"></i>
+                    <span>M1: Network Profitability & Occupancy</span>
+                </button>
+                <button onclick="switchTab('tab-delivery')" id="tab-btn-delivery" class="tab-btn px-3 py-2 whitespace-nowrap rounded-lg flex items-center space-x-1.5 transition text-slate-600 hover:text-slate-900">
+                    <i data-lucide="truck" class="w-4 h-4 text-slate-500"></i>
+                    <span>M2: Channel & Delivery Economics</span>
+                </button>
+                <button onclick="switchTab('tab-labor')" id="tab-btn-labor" class="tab-btn px-3 py-2 whitespace-nowrap rounded-lg flex items-center space-x-1.5 transition text-slate-600 hover:text-slate-900">
+                    <i data-lucide="users" class="w-4 h-4 text-slate-500"></i>
+                    <span>M3: Peak-Hour Labor & Throughput</span>
+                </button>
+                <button onclick="switchTab('tab-waste')" id="tab-btn-waste" class="tab-btn px-3 py-2 whitespace-nowrap rounded-lg flex items-center space-x-1.5 transition text-slate-600 hover:text-slate-900">
+                    <i data-lucide="trash-2" class="w-4 h-4 text-slate-500"></i>
+                    <span>M4: Waste & Par Optimizer</span>
+                </button>
+                <button onclick="switchTab('tab-digital')" id="tab-btn-digital" class="tab-btn px-3 py-2 whitespace-nowrap rounded-lg flex items-center space-x-1.5 transition text-slate-600 hover:text-slate-900">
+                    <i data-lucide="smartphone" class="w-4 h-4 text-slate-500"></i>
+                    <span>M5: Digital App & Sentiment</span>
+                </button>
+                <button onclick="switchTab('tab-expansion')" id="tab-btn-expansion" class="tab-btn px-3 py-2 whitespace-nowrap rounded-lg flex items-center space-x-1.5 transition text-slate-600 hover:text-slate-900">
+                    <i data-lucide="compass" class="w-4 h-4 text-slate-500"></i>
+                    <span>M6: Expansion & Site Evaluator</span>
+                </button>
+            </nav>
+        </div>
+
+        <div class="p-6">
+
+            <!-- ========================================== -->
+            <!-- MODULE 1: Profitability & Occupancy Engine -->
+            <!-- ========================================== -->
+            <div id="tab-pnl" class="tab-content space-y-6">
+                <!-- Section Header -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 mr-2"></span>
+                            FR-1.1: True Profit Heatmap & Fixed Occupancy Trap
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            Ranks stores by Operating Margin (%) and Net Profit (£) rather than misleading top-line volume.
+                        </p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs font-semibold px-2.5 py-1 bg-rose-100 text-rose-800 rounded-md border border-rose-200">
+                            Critical Alert: S07 Manchester Piccadilly (-£50.3k / yr)
+                        </span>
+                    </div>
+                </div>
+
+                <!-- True Profit Heatmap Table -->
+                <div class="overflow-x-auto rounded-lg border border-slate-200">
+                    <table class="min-w-full divide-y divide-slate-200 text-left text-xs" id="pnl-table">
+                        <thead class="bg-slate-50 font-bold text-slate-700 uppercase tracking-wider">
+                            <tr>
+                                <th class="px-4 py-3">Store</th>
+                                <th class="px-4 py-3">City & Format</th>
+                                <th class="px-4 py-3 text-right">Sales (£)</th>
+                                <th class="px-4 py-3 text-right">Sales Rank</th>
+                                <th class="px-4 py-3 text-right">Net Profit (£)</th>
+                                <th class="px-4 py-3 text-right">Profit Rank</th>
+                                <th class="px-4 py-3 text-right">Op Margin (%)</th>
+                                <th class="px-4 py-3 text-right">Occupancy % (Rent+Rates)</th>
+                                <th class="px-4 py-3 text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 bg-white" id="pnl-table-body">
+                            <!-- Populated dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Fixed Occupancy Calculator & Alert Box (FR-1.2) -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4">
+                    <div class="lg:col-span-2 bg-slate-50 rounded-xl p-5 border border-slate-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-sm font-bold text-slate-900 flex items-center">
+                                <i data-lucide="shield-alert" class="w-4 h-4 text-rose-600 mr-2"></i>
+                                FR-1.2 Fixed Occupancy Cost Threshold Monitor (25% Benchmark Rule)
+                            </h3>
+                            <span class="text-xs bg-rose-100 text-rose-800 font-semibold px-2 py-0.5 rounded">
+                                Alert Threshold: >25% of Sales
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-600 mb-4">
+                            High fixed rents transform strong sales locations into cash burns. Manchester Piccadilly (S07) generates top-tier sales of ~£90k/month, but fixed occupancy costs devour <strong>40.2% to 41.4%</strong> of sales (£30,500 rent + £6,710 business rates).
+                        </p>
+                        <div class="h-64">
+                            <canvas id="occupancyChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Cannibalization Audit Tool Card (FR-1.3) -->
+                    <div class="bg-slate-50 rounded-xl p-5 border border-slate-200 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-sm font-bold text-slate-900 flex items-center">
+                                    <i data-lucide="git-merge" class="w-4 h-4 text-indigo-600 mr-2"></i>
+                                    FR-1.3 Cannibalization Audit
+                                </h3>
+                                <span class="text-[11px] bg-indigo-100 text-indigo-800 font-semibold px-2 py-0.5 rounded">
+                                    Leeds Market
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-600 mb-3">
+                                Leeds Trinity (S12) opened on <strong>15 Sept 2025</strong> just 0.4 miles from Leeds Briggate (S03).
+                            </p>
+                            <div class="space-y-2 text-xs">
+                                <div class="flex justify-between p-2 rounded bg-white border border-slate-200">
+                                    <span class="text-slate-600">S03 Pre-opening Avg Sales:</span>
+                                    <span class="font-bold text-slate-900" id="cannibal-pre-s03">£89,206 / mo</span>
+                                </div>
+                                <div class="flex justify-between p-2 rounded bg-white border border-slate-200">
+                                    <span class="text-slate-600">S03 Post-opening Avg Sales:</span>
+                                    <span class="font-bold text-slate-900" id="cannibal-post-s03">£70,753 / mo</span>
+                                </div>
+                                <div class="flex justify-between p-2 rounded bg-rose-50 border border-rose-200 text-rose-800">
+                                    <span class="font-semibold">S03 Revenue Dilution:</span>
+                                    <span class="font-bold" id="cannibal-dilution">-£18,453 / mo (-20.7%)</span>
+                                </div>
+                                <div class="flex justify-between p-2 rounded bg-emerald-50 border border-emerald-200 text-emerald-800">
+                                    <span class="font-semibold">Net Leeds Market Growth:</span>
+                                    <span class="font-bold" id="cannibal-net-growth">+£28,500 / mo Net Gain</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-200 text-[11px] text-slate-500">
+                            <strong>Conclusion:</strong> S12 cannibalized ~20% of Briggate's sales, but generated 2.5x incremental market volume, resulting in positive combined territory profit.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- MODULE 2: Channel & Delivery Economics     -->
+            <!-- ========================================== -->
+            <div id="tab-delivery" class="tab-content hidden space-y-6">
+                <!-- Section Header -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 mr-2"></span>
+                            FR-2.1 & FR-2.2: Channel Margin Waterfall & Sub-£8 Delivery Alarm
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            Dissecting delivery platform commission drag, £0.45 packaging cost, and 4 min labor packing penalty per order.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Channel Margin Waterfall Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4" id="channel-waterfall-cards">
+                    <!-- Populated via JS -->
+                </div>
+
+                <!-- Sub-£8 Alarm & Simulator Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+                    <!-- Sub-£8 Order Alarm Card (FR-2.2) -->
+                    <div class="bg-slate-50 rounded-xl p-5 border border-slate-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-sm font-bold text-slate-900 flex items-center">
+                                <i data-lucide="bell-ring" class="w-4 h-4 text-rose-600 mr-2"></i>
+                                FR-2.2 Sub-£8 Single-Coffee Order Alarm
+                            </h3>
+                            <span class="text-xs bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded" id="sub8-alarm-badge">
+                                29.0% OF DELIVERY ORDERS
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-600 mb-4">
+                            29.0% of third-party delivery orders are single drinks under £8 (avg ticket £4.85). After 30% commission (£1.45), packaging (£0.45), food cost (£1.36), and 4 min staff packing labor (£0.93), Grind & Crumb pockets just <strong>£0.66 - £0.79 net contribution</strong> while disrupting the in-store queue!
+                        </p>
+                        
+                        <div class="h-56">
+                            <canvas id="sub8HourlyChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- FR-2.3: Delivery Markup Simulator -->
+                    <div class="bg-slate-50 rounded-xl p-5 border border-amber-200 bg-amber-50/10">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-sm font-bold text-slate-900 flex items-center">
+                                <i data-lucide="sliders" class="w-4 h-4 text-amber-600 mr-2"></i>
+                                FR-2.3 Delivery Markup & Minimum Basket Simulator
+                            </h3>
+                            <span class="text-xs bg-amber-100 text-amber-800 font-semibold px-2 py-0.5 rounded">
+                                Scenario Tool
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-600 mb-4">
+                            Simulate the chain profit impact of implementing a 15%–20% menu price markup or instituting an £8 minimum basket threshold on Dashly and RushEats.
+                        </p>
+
+                        <!-- Controls -->
+                        <div class="space-y-4 bg-white p-4 rounded-lg border border-slate-200">
+                            <div>
+                                <div class="flex justify-between text-xs font-semibold text-slate-700 mb-1">
+                                    <span>Delivery Menu Markup:</span>
+                                    <span class="text-amber-600 font-bold" id="sim-markup-display">+18%</span>
+                                </div>
+                                <input type="range" id="sim-markup-slider" min="0" max="30" step="1" value="18" oninput="runDeliverySimulation()" class="w-full accent-amber-600 cursor-pointer">
+                                <div class="flex justify-between text-[10px] text-slate-400 mt-0.5">
+                                    <span>0% (Parity)</span>
+                                    <span>15%</span>
+                                    <span>20% (Industry Standard)</span>
+                                    <span>30%</span>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                                <div>
+                                    <label class="text-xs font-bold text-slate-800">Enforce £8 Minimum Basket Threshold</label>
+                                    <p class="text-[11px] text-slate-500">Converts or eliminates loss-making single americano deliveries</p>
+                                </div>
+                                <input type="checkbox" id="sim-minbasket-check" checked onchange="runDeliverySimulation()" class="w-4 h-4 accent-amber-600 rounded cursor-pointer">
+                            </div>
+                        </div>
+
+                        <!-- Simulation Results Box -->
+                        <div class="mt-4 grid grid-cols-2 gap-3 text-xs">
+                            <div class="p-3 bg-white rounded-lg border border-slate-200">
+                                <span class="text-slate-500 text-[11px]">Net Margin Improvement</span>
+                                <div class="text-lg font-black text-emerald-600 mt-0.5" id="sim-margin-pts">+5.8 pts</div>
+                                <span class="text-[10px] text-slate-400">Margin rises from 31% to 37%</span>
+                            </div>
+                            <div class="p-3 bg-white rounded-lg border border-emerald-200 bg-emerald-50/30">
+                                <span class="text-emerald-800 font-semibold text-[11px]">Annual Chain Profit Recovery</span>
+                                <div class="text-lg font-black text-emerald-700 mt-0.5" id="sim-profit-recovery">+£54,200</div>
+                                <span class="text-[10px] text-emerald-600 font-medium">Recovers lost commission drag</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- MODULE 3: Peak-Hour Labor & Throughput     -->
+            <!-- ========================================== -->
+            <div id="tab-labor" class="tab-content hidden space-y-6">
+                <!-- Section Header -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 mr-2"></span>
+                            FR-3.1 & FR-3.2: 11am-2pm Bottleneck Index & Walkout Revenue Loss
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            Overlaying door footfall counts against active barista capacity to isolate queue walkouts and estimate lost earnings.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Bottlenecks Chart & Table -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-slate-50 rounded-xl p-5 border border-slate-200">
+                        <h3 class="text-sm font-bold text-slate-900 mb-1">Peak Lunch (11:00 - 14:00) Footfall vs Barista Capacity</h3>
+                        <p class="text-xs text-slate-500 mb-3">Comparing customer demand entering the door vs maximum espresso extraction capacity</p>
+                        <div class="h-64">
+                            <canvas id="bottleneckChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Walkout Loss Summary -->
+                    <div class="bg-white rounded-xl p-5 border border-amber-200 shadow-sm flex flex-col justify-between">
+                        <div>
+                            <span class="text-[11px] font-bold uppercase text-amber-700 tracking-wider">Queue Abandonment Audit</span>
+                            <h3 class="text-base font-bold text-slate-900 mt-1">Lost Walkaway Revenue</h3>
+                            <div class="text-3xl font-black text-rose-600 mt-2" id="labor-annual-walkout-loss">£84,200</div>
+                            <p class="text-xs text-slate-500 mt-1">Estimated annual uncaptured sales due to lines > 5 deep at transit and office locations.</p>
+                            
+                            <div class="mt-4 space-y-2 text-xs">
+                                <div class="flex justify-between p-2 rounded bg-slate-50">
+                                    <span class="text-slate-600">Peak Store Bottleneck:</span>
+                                    <span class="font-bold text-rose-600">S07 Piccadilly (3 staff vs 5 needed)</span>
+                                </div>
+                                <div class="flex justify-between p-2 rounded bg-slate-50">
+                                    <span class="text-slate-600">Office Store Bottleneck:</span>
+                                    <span class="font-bold text-amber-600">S06 Spinningfields (Deficit: 1.8 staff)</span>
+                                </div>
+                                <div class="flex justify-between p-2 rounded bg-emerald-50 text-emerald-800 font-medium">
+                                    <span>ROI to Flex 2 Lunch Baristas:</span>
+                                    <span class="font-bold">4.8x Return (£400/day vs £84 cost)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-t border-slate-200 text-[11px] text-slate-500">
+                            <strong>Operations Milestone:</strong> Deploy 11am-2pm staffing flex rules to cap peak walkouts.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FR-3.3 Labor Inflation Stress Tester -->
+                <div class="bg-slate-50 rounded-xl p-5 border border-slate-200">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-sm font-bold text-slate-900 flex items-center">
+                            <i data-lucide="calculator" class="w-4 h-4 text-amber-600 mr-2"></i>
+                            FR-3.3 National Living Wage Inflation Stress Tester
+                        </h3>
+                        <span class="text-xs bg-amber-100 text-amber-800 font-semibold px-2 py-0.5 rounded">
+                            Mandatory +6.7% NLW Rise
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-600 mb-4">
+                        Model the store-by-store profit erosion from the 6.7% statutory NLW increase effective 1 April 2026 across sales per labor hour.
+                    </p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center bg-white p-4 rounded-lg border border-slate-200">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-700">Wage Increase (%):</label>
+                            <div class="flex items-center space-x-2 mt-1">
+                                <input type="number" id="stress-wage-input" value="6.7" step="0.1" min="0" max="20" class="w-20 text-xs border border-slate-300 rounded px-2 py-1 font-bold">
+                                <span class="text-xs text-slate-500">%</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-700">Menu Price Offset (%):</label>
+                            <div class="flex items-center space-x-2 mt-1">
+                                <input type="number" id="stress-price-input" value="2.5" step="0.1" min="0" max="15" class="w-20 text-xs border border-slate-300 rounded px-2 py-1 font-bold">
+                                <span class="text-xs text-slate-500">%</span>
+                            </div>
+                        </div>
+                        <div class="col-span-2 flex items-center space-x-4">
+                            <button onclick="runWageStressTest()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg shadow transition">
+                                Calculate Stress Impact
+                            </button>
+                            <div class="text-xs text-slate-600" id="wage-stress-summary-text">
+                                Chain Breakeven Price Rise: <strong>~2.1%</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- MODULE 4: Inventory Shrinkage & Par Levels -->
+            <!-- ========================================== -->
+            <div id="tab-waste" class="tab-content hidden space-y-6">
+                <!-- Section Header -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 mr-2"></span>
+                            FR-4.1 & FR-4.2: Waste Rate Variance & Dynamic Par Levels
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            Monitoring food prep waste against the 9.0% chain benchmark, highlighting Hull Paragon (S10) at 20.7%.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Waste Tracker Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Waste Rate Variance Chart -->
+                    <div class="lg:col-span-2 bg-slate-50 rounded-xl p-5 border border-slate-200">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-sm font-bold text-slate-900">Store Waste Rate vs 9.0% Benchmark</h3>
+                            <span class="text-xs bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded">
+                                Hull Paragon S10 Outlier: 20.7%
+                            </span>
+                        </div>
+                        <div class="h-64">
+                            <canvas id="wasteChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Early Stockout Monitor (FR-4.3) -->
+                    <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
+                        <div>
+                            <span class="text-[11px] font-bold uppercase text-amber-700 tracking-wider">FR-4.3 Stockout Monitor</span>
+                            <h3 class="text-sm font-bold text-slate-900 mt-1">Spinningfields Lunch Stockout Deficit</h3>
+                            <p class="text-xs text-slate-500 mt-1">
+                                Sandwiches consistently run out before 1:30 PM (often 1:18 PM), leaving the counter empty during afternoon trade.
+                            </p>
+                            <div class="mt-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-900 text-xs space-y-1">
+                                <div class="flex justify-between font-semibold">
+                                    <span>Avg Last Sandwich Sale:</span>
+                                    <span>13:18 PM</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Missed Lunch Tx / Day:</span>
+                                    <span>~18 orders</span>
+                                </div>
+                                <div class="flex justify-between font-bold text-rose-700 pt-1 border-t border-rose-200">
+                                    <span>Annual Lost Sandwich Sales:</span>
+                                    <span>~£28,250</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-t border-slate-200 text-[11px] text-slate-500">
+                            <strong>Recommendation:</strong> Bump S06 daily lunch par by +15 units; office afternoon demand will comfortably absorb it.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FR-4.2 Dynamic Par Level Recommender Widget -->
+                <div class="bg-slate-50 rounded-xl p-5 border border-slate-200">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 flex items-center">
+                                <i data-lucide="sparkles" class="w-4 h-4 text-amber-600 mr-2"></i>
+                                FR-4.2 Dynamic Daily Food Prep Par Calculator
+                            </h3>
+                            <p class="text-xs text-slate-500">
+                                Calculates weather & day-of-week adjusted prep par levels to eradicate the Hull Paragon waste overhang.
+                            </p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase">Day of Week</label>
+                                <select id="par-dow" onchange="runDynamicParCalc()" class="text-xs border border-slate-300 rounded px-2 py-1 bg-white">
+                                    <option value="Monday">Monday</option>
+                                    <option value="Tuesday">Tuesday</option>
+                                    <option value="Wednesday" selected>Wednesday</option>
+                                    <option value="Thursday">Thursday</option>
+                                    <option value="Friday">Friday</option>
+                                    <option value="Saturday">Saturday</option>
+                                    <option value="Sunday">Sunday</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase">Forecast Weather</label>
+                                <select id="par-weather" onchange="runDynamicParCalc()" class="text-xs border border-slate-300 rounded px-2 py-1 bg-white">
+                                    <option value="Sunny">Sunny / Warm</option>
+                                    <option value="Rainy" selected>Rainy / Wet</option>
+                                    <option value="Cold">Cold / Frost</option>
+                                    <option value="Overcast">Overcast / Normal</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Par Table -->
+                    <div class="overflow-x-auto bg-white rounded-lg border border-slate-200">
+                        <table class="min-w-full text-xs text-left divide-y divide-slate-200">
+                            <thead class="bg-slate-50 font-bold text-slate-700">
+                                <tr>
+                                    <th class="px-4 py-2.5">Category</th>
+                                    <th class="px-4 py-2.5 text-right">Recommended Prep (Units)</th>
+                                    <th class="px-4 py-2.5 text-right">Safety Buffer %</th>
+                                    <th class="px-4 py-2.5 text-right">Est. Food Cost</th>
+                                    <th class="px-4 py-2.5 text-right">Potential Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dynamic-par-body" class="divide-y divide-slate-200">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- MODULE 5: Digital App & Customer Sentiment -->
+            <!-- ========================================== -->
+            <div id="tab-digital" class="tab-content hidden space-y-6">
+                <!-- Section Header -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 mr-2"></span>
+                            FR-5.1 & FR-5.2: Digital App Telemetry & Customer Sentiment Tracker
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            Monitoring App v3.0 release checkout crash telemetry, delivery displacement bleed, and customer sentiment correlations.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- App Telemetry Incident Timeline Chart -->
+                <div class="bg-slate-50 rounded-xl p-5 border border-slate-200">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900">App v3.0 Release Incident: Order Volume Collapse & Third-Party Bleed</h3>
+                            <p class="text-xs text-slate-500">2 March 2026 launch caused a 43% crash in app checkouts, displacing loyal customers onto commission-heavy delivery apps</p>
+                        </div>
+                        <div class="flex items-center space-x-2 text-xs">
+                            <span class="px-2 py-0.5 bg-rose-100 text-rose-800 rounded font-semibold">2 Mar: v3.0 Release</span>
+                            <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-semibold">13 Apr: v3.1 Hotfix</span>
+                        </div>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="digitalHealthChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Sentiment & Surcharge Tracker Grid (FR-5.2) -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Key Phrase Clusters -->
+                    <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+                        <h3 class="text-sm font-bold text-slate-900 mb-2">Review Key Phrase Sentiment Analysis (3,030 Reviews)</h3>
+                        <p class="text-xs text-slate-500 mb-4">Frequency and star ratings for core customer pain points</p>
+                        <div class="space-y-3 text-xs" id="sentiment-clusters-list">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Oat Milk Surcharge Deep Dive -->
+                    <div class="bg-slate-50 rounded-xl p-5 border border-amber-200 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-sm font-bold text-slate-900">Oat Milk Surcharge Impact Audit</h3>
+                                <span class="text-xs bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded">12 Jan 2026 Policy</span>
+                            </div>
+                            <p class="text-xs text-slate-600 mb-3">
+                                On 12 January 2026, finance introduced a <strong>£0.40 charge on oat milk</strong> across all 12 stores to recover ~£40k in costs.
+                            </p>
+                            <div class="space-y-2 text-xs">
+                                <div class="flex justify-between p-2.5 rounded bg-white border border-slate-200">
+                                    <span class="text-slate-600">Pre-surcharge Oat Reviews Rating:</span>
+                                    <span class="font-bold text-emerald-600">4.18 / 5.0 Stars</span>
+                                </div>
+                                <div class="flex justify-between p-2.5 rounded bg-white border border-slate-200">
+                                    <span class="text-slate-600">Post-surcharge Oat Reviews Rating:</span>
+                                    <span class="font-bold text-rose-600">2.12 / 5.0 Stars (-2.06 drop)</span>
+                                </div>
+                                <div class="p-2.5 rounded bg-rose-50 border border-rose-200 text-rose-900 text-[11px]">
+                                    <strong>Market Context:</strong> Competitor Bean Social scrapped its 45p plant milk charge two days later (14 Jan). Customer surveys show 38% citing the oat charge as their reason for visiting less.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-t border-slate-200 text-[11px] text-slate-500">
+                            <strong>Strategic Recommendation:</strong> Drop the oat milk surcharge; the £40k paper savings are overwhelmed by lost lifetime customer value and loyalty churn.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- MODULE 6: Capital Expansion & Sites        -->
+            <!-- ========================================== -->
+            <div id="tab-expansion" class="tab-content hidden space-y-6">
+                <!-- Section Header -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 mr-2"></span>
+                            FR-6.1: Capital Expansion & Candidate Site Scorer
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            Evaluating proposed locations (CS1–CS7) using multi-criteria weighted scoring to avoid another high-rent occupancy trap.
+                        </p>
+                    </div>
+                    <div class="flex items-center space-x-2 text-xs">
+                        <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-bold rounded">
+                            Recommended: CS3 Manchester Oxford Rd
+                        </span>
+                        <span class="px-2.5 py-1 bg-rose-100 text-rose-800 font-bold rounded">
+                            Reject: CS4 York Station (High Risk)
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Weight Adjustment Controls -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
+                    <span class="font-bold text-slate-700 uppercase tracking-wider block mb-2">Executive Criteria Weighting Adjuster</span>
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                        <div>
+                            <div class="flex justify-between text-[11px] font-semibold text-slate-600 mb-1">
+                                <span>Footfall:</span>
+                                <span id="weight-footfall-val" class="font-bold text-amber-600">25%</span>
+                            </div>
+                            <input type="range" id="w-footfall" min="5" max="50" value="25" oninput="runSiteScoring()" class="w-full accent-amber-600 cursor-pointer">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-[11px] font-semibold text-slate-600 mb-1">
+                                <span>Demographics:</span>
+                                <span id="weight-demo-val" class="font-bold text-amber-600">25%</span>
+                            </div>
+                            <input type="range" id="w-demo" min="5" max="50" value="25" oninput="runSiteScoring()" class="w-full accent-amber-600 cursor-pointer">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-[11px] font-semibold text-slate-600 mb-1">
+                                <span>Rent Efficiency:</span>
+                                <span id="weight-rent-val" class="font-bold text-amber-600">20%</span>
+                            </div>
+                            <input type="range" id="w-rent" min="5" max="50" value="20" oninput="runSiteScoring()" class="w-full accent-amber-600 cursor-pointer">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-[11px] font-semibold text-slate-600 mb-1">
+                                <span>CapEx ROI:</span>
+                                <span id="weight-capex-val" class="font-bold text-amber-600">15%</span>
+                            </div>
+                            <input type="range" id="w-capex" min="5" max="50" value="15" oninput="runSiteScoring()" class="w-full accent-amber-600 cursor-pointer">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-[11px] font-semibold text-slate-600 mb-1">
+                                <span>Cannibalization Risk:</span>
+                                <span id="weight-cannibal-val" class="font-bold text-amber-600">15%</span>
+                            </div>
+                            <input type="range" id="w-cannibal" min="5" max="50" value="15" oninput="runSiteScoring()" class="w-full accent-amber-600 cursor-pointer">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Candidate Sites Table -->
+                <div class="overflow-x-auto bg-white rounded-lg border border-slate-200">
+                    <table class="min-w-full text-xs text-left divide-y divide-slate-200">
+                        <thead class="bg-slate-50 font-bold text-slate-700 uppercase tracking-wider">
+                            <tr>
+                                <th class="px-4 py-3">Site ID & Name</th>
+                                <th class="px-4 py-3">City & Type</th>
+                                <th class="px-4 py-3 text-right">Rent / Month</th>
+                                <th class="px-4 py-3 text-right">Rent / SqFt</th>
+                                <th class="px-4 py-3 text-right">Daily Footfall</th>
+                                <th class="px-4 py-3 text-right">Fit-Out CapEx</th>
+                                <th class="px-4 py-3 text-center">Score (0-100)</th>
+                                <th class="px-4 py-3 text-center">Recommendation</th>
+                            </tr>
+                        </thead>
+                        <tbody id="candidate-sites-body" class="divide-y divide-slate-200">
+                            <!-- Populated dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Site Evaluation Comparison Chart -->
+                <div class="bg-slate-50 rounded-xl p-5 border border-slate-200">
+                    <h3 class="text-sm font-bold text-slate-900 mb-2">Candidate Sites Multi-Criteria Score Breakdown</h3>
+                    <div class="h-64">
+                        <canvas id="sitesComparisonChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+{% endblock %}
