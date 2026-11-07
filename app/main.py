@@ -156,6 +156,37 @@ def create_new_store(
             status_code=303
         )
 
+@app.get("/api/explain-store/{store_id}")
+def api_explain_store(store_id: str):
+    """Feature 1: Returns plain-English diagnosis and recommended actions for a store."""
+    explanation = DataManager.explain_store(store_id)
+    return explanation
+
+@app.post("/api/ask")
+async def api_ask_question(request: Request):
+    """Answers any operational store question using Google Gemini AI with deep contextual data."""
+    try:
+        body = await request.json()
+        question = body.get("question", "")
+    except Exception:
+        question = ""
+    result = DataManager.ask_data_question(question)
+    return result
+
+@app.get("/instructions", response_class=HTMLResponse)
+def instructions_page(request: Request):
+    """Staff and store managers user manual with metric definitions and daily routines."""
+    settings = get_settings()
+    return templates.TemplateResponse(
+        request=request,
+        name="instructions.html",
+        context={
+            "settings": settings,
+            "active_page": "instructions",
+            "title": "Staff & Ops Instructions - Grind & Crumb"
+        }
+    )
+
 @app.get("/settings", response_class=HTMLResponse)
 def settings_page(request: Request, saved: bool = False):
     """Editable alert thresholds & Gemini API key configuration."""

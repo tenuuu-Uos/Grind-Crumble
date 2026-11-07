@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8">
+
+    <!-- Header -->
+    <div class="bg-white rounded-xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-2.5">
+                <div class="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-700 flex items-center justify-center">
+                    <i data-lucide="book-open" class="w-5 h-5"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Staff &amp; Operations Guide</h1>
+            </div>
+            <p class="text-base text-slate-600 mt-2">
+                Plain-language reference guide for store managers, baristas, and area leads on how to use the Grind &amp; Crumb Store Health Monitor.
+            </p>
+        </div>
+        <a href="/" class="text-sm font-semibold text-slate-700 hover:text-slate-900 px-4 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 transition shrink-0 self-start sm:self-center shadow-sm">
+            &larr; Back to Stores
+        </a>
+    </div>
+
+    <!-- Quick Navigation Pills -->
+    <div class="flex flex-wrap gap-2 text-sm">
+        <a href="#quickstart" class="px-3.5 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium transition">1. Daily Routine</a>
+        <a href="#rag" class="px-3.5 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium transition">2. RAG Badges &amp; Meaning</a>
+        <a href="#metrics" class="px-3.5 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium transition">3. Key Operational Metrics</a>
+        <a href="#alerts" class="px-3.5 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium transition">4. Plain-Language Alerts</a>
+        <a href="#upload" class="px-3.5 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium transition">5. Monthly Data Upload &amp; AI</a>
+        <a href="#settings" class="px-3.5 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium transition">6. Changing Targets</a>
+    </div>
+
+    <!-- Section 1: Daily Routine -->
+    <section id="quickstart" class="bg-white rounded-xl border border-slate-200 p-6 sm:p-7 shadow-sm space-y-4">
+        <div class="flex items-center space-x-2 text-slate-900">
+            <i data-lucide="clock" class="w-5 h-5 text-amber-600"></i>
+            <h2 class="text-xl font-bold">1. How Store Teams Use the System Daily</h2>
+        </div>
+        <p class="text-base text-slate-600 leading-relaxed">
+            This dashboard was built for store teams, not data analysts. You don't need to calculate formulas or interpret complex statistics. Use this 3-step routine:
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+            <div class="p-4 rounded-lg bg-slate-50 border border-slate-200/80">
+                <div class="w-7 h-7 rounded-full bg-slate-900 text-white font-bold text-sm flex items-center justify-center mb-2">1</div>
+                <h3 class="text-base font-bold text-slate-900 mb-1">Check Your Card</h3>
+                <p class="text-sm text-slate-600">
+                    Find your store on the Home Grid. Look at your color badge (<strong class="text-rose-700">Action</strong>, <strong class="text-amber-700">Watch</strong>, or <strong class="text-emerald-700">Optimal</strong>).
+                </p>
+            </div>
+            <div class="p-4 rounded-lg bg-slate-50 border border-slate-200/80">
+                <div class="w-7 h-7 rounded-full bg-slate-900 text-white font-bold text-sm flex items-center justify-center mb-2">2</div>
+                <h3 class="text-base font-bold text-slate-900 mb-1">Read the Alert</h3>
+                <p class="text-sm text-slate-600">
+                    Every card shows a direct, plain-English action message (e.g. <em>"Waste is 2.4× target"</em> or <em>"Short -1.8 baristas during 11am–2pm rush"</em>).
+                </p>
+            </div>
+            <div class="p-4 rounded-lg bg-slate-50 border border-slate-200/80">
+                <div class="w-7 h-7 rounded-full bg-slate-900 text-white font-bold text-sm flex items-center justify-center mb-2">3</div>
+                <h3 class="text-base font-bold text-slate-900 mb-1">Click for Deep Dive</h3>
+                <p class="text-sm text-slate-600">
+                    Click your store to see the exact P&amp;L breakdown, the lunchtime staffing gap heatmap, and the 12-month waste trend.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 2: RAG Status -->
+    <section id="rag" class="bg-white rounded-xl border border-slate-200 p-6 sm:p-7 shadow-sm space-y-4">
+        <div class="flex items-center space-x-2 text-slate-900">
+            <i data-lucide="shield-alert" class="w-5 h-5 text-amber-600"></i>
+            <h2 class="text-xl font-bold">2. Understanding Red / Amber / Green (RAG) Badges</h2>
+        </div>
+        <p class="text-base text-slate-600 leading-relaxed">
+            Every location receives an automatic operational health status based on real floor performance:
+        </p>
+
+        <div class="space-y-3 pt-1">
+            <div class="p-4 rounded-lg bg-rose-50/70 border border-rose-200 flex items-start space-x-3">
+                <span class="px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wider rag-badge-red shrink-0 mt-0.5">Action (Red)</span>
+                <div>
+                    <h4 class="text-base font-bold text-rose-950">Immediate Operational Attention Required</h4>
+                    <p class="text-sm text-rose-900/90 mt-1">
+                        Triggered when food waste exceeds <strong>{{ settings.waste_benchmark_pct }}%</strong>, profit margin falls below <strong>{{ settings.margin_floor_pct }}%</strong>, rent &amp; rates devour &gt;<strong>{{ settings.occupancy_ceiling_pct }}%</strong> of sales, or peak lunchtime has a severe staff deficit (&ge; 1.5 baristas short).
+                    </p>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-lg bg-amber-50/70 border border-amber-200 flex items-start space-x-3">
+                <span class="px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wider rag-badge-amber shrink-0 mt-0.5">Watch (Amber)</span>
+                <div>
+                    <h4 class="text-base font-bold text-amber-950">Approaching Limits / Minor Deficit</h4>
+                    <p class="text-sm text-amber-900/90 mt-1">
+                        Triggered when performance is close to alert thresholds, margin has dropped compared to last month, or lunch rush is slightly understaffed (between 0.5 and 1.4 baristas short).
+                    </p>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-lg bg-emerald-50/70 border border-emerald-200 flex items-start space-x-3">
+                <span class="px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wider rag-badge-green shrink-0 mt-0.5">Optimal (Green)</span>
+                <div>
+                    <h4 class="text-base font-bold text-emerald-950">Healthy Operations</h4>
+                    <p class="text-sm text-emerald-900/90 mt-1">
+                        Profitable store with low waste, healthy margin (&ge; {{ settings.margin_floor_pct }}%), and balanced counter barista staffing during peak rushes.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 3: Key Operational Metrics -->
+    <section id="metrics" class="bg-white rounded-xl border border-slate-200 p-6 sm:p-7 shadow-sm space-y-4">
+        <div class="flex items-center space-x-2 text-slate-900">
+            <i data-lucide="help-circle" class="w-5 h-5 text-amber-600"></i>
+            <h2 class="text-xl font-bold">3. Metric Definitions &amp; Targets</h2>
+        </div>
+        <p class="text-base text-slate-600">
+            Hover over any metric name anywhere in the web app to see its pop-up explanation. Here is the complete operational guide:
+        </p>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm text-left divide-y divide-slate-200 border border-slate-200 rounded-lg overflow-hidden">
+                <thead class="bg-slate-50 font-bold text-slate-700 uppercase tracking-wider text-xs">
+                    <tr>
+                        <th class="py-3 px-4">Metric</th>
+                        <th class="py-3 px-4">What it Measures</th>
+                        <th class="py-3 px-4">Chain Target</th>
+                        <th class="py-3 px-4">What Store Staff Can Do</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <tr class="hover:bg-slate-50/60">
+                        <td class="py-3.5 px-4 font-bold text-slate-900">Store Margin</td>
+                        <td class="py-3.5 px-4 text-slate-600">Operating profit after all food, labour, rent, and store costs, divided by net revenue.</td>
+                        <td class="py-3.5 px-4 font-semibold text-emerald-700">&ge; {{ settings.margin_floor_pct }}%</td>
+                        <td class="py-3.5 px-4 text-slate-500">Protect product portioning, upsell high-margin baked goods, control unnecessary waste.</td>
+                    </tr>
+                    <tr class="hover:bg-slate-50/60">
+                        <td class="py-3.5 px-4 font-bold text-slate-900">Waste %</td>
+                        <td class="py-3.5 px-4 text-slate-600">Cost of discarded food and expired baked goods divided by total food sales.</td>
+                        <td class="py-3.5 px-4 font-semibold text-emerald-700">&le; {{ settings.waste_benchmark_pct }}%</td>
+                        <td class="py-3.5 px-4 text-slate-500">Log all end-of-day discards accurately; adjust bake-off batch sizes according to morning footfall.</td>
+                    </tr>
+                    <tr class="hover:bg-slate-50/60">
+                        <td class="py-3.5 px-4 font-bold text-slate-900">Occupancy %</td>
+                        <td class="py-3.5 px-4 text-slate-600">Monthly Rent + Business Rates divided by monthly sales. High % indicates a rent trap.</td>
+                        <td class="py-3.5 px-4 font-semibold text-emerald-700">&le; {{ settings.occupancy_ceiling_pct }}%</td>
+                        <td class="py-3.5 px-4 text-slate-500">Drive volume through grab-and-go speed and app pickup to grow revenue against the fixed rent base.</td>
+                    </tr>
+                    <tr class="hover:bg-slate-50/60">
+                        <td class="py-3.5 px-4 font-bold text-slate-900">Delivery Share</td>
+                        <td class="py-3.5 px-4 text-slate-600">Portion of total monthly revenue fulfilled through Dashly and RushEats apps.</td>
+                        <td class="py-3.5 px-4 text-slate-600">12% – 18%</td>
+                        <td class="py-3.5 px-4 text-slate-500">Ensure delivery packaging and bag sealing are prepped ahead so counter service isn't slowed down.</td>
+                    </tr>
+                    <tr class="hover:bg-slate-50/60">
+                        <td class="py-3.5 px-4 font-bold text-slate-900">Peak Staff Gap</td>
+                        <td class="py-3.5 px-4 text-slate-600">Difference between active baristas and required baristas during 11:00–14:00 lunchtime rush.</td>
+                        <td class="py-3.5 px-4 font-semibold text-emerald-700">0 (Balanced)</td>
+                        <td class="py-3.5 px-4 text-slate-500">Shift rotas so prep/cleaning shifts happen before 11am or after 2pm; have all hands on customer service.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Section 4: Upload & AI Integration -->
+    <section id="upload" class="bg-white rounded-xl border border-slate-200 p-6 sm:p-7 shadow-sm space-y-4">
+        <div class="flex items-center space-x-2 text-slate-900">
+            <i data-lucide="sparkles" class="w-5 h-5 text-amber-600"></i>
+            <h2 class="text-xl font-bold">4. How to Refresh Data Each Month (No Developer Needed)</h2>
+        </div>
+        <p class="text-base text-slate-600 leading-relaxed">
+            When new monthly sales, rota, or waste files are exported from your till or scheduling software:
+        </p>
+        <ol class="list-decimal pl-5 space-y-2.5 text-base text-slate-600">
+            <li>Go to the <strong class="text-slate-900 font-semibold">Upload &amp; AI</strong> tab in the navigation bar.</li>
+            <li>Select the data category (e.g. <em>Monthly Store P&amp;L</em>, <em>Itemized Food Waste</em>, or <em>Staff Rota</em>).</li>
+            <li>Choose your CSV file and click <strong class="text-slate-900 font-semibold">Cleanse &amp; Analyze with Gemini</strong>.</li>
+            <li>The system will automatically deduplicate records, normalize dates to <code class="bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded text-sm">YYYY-MM-DD</code>, calculate new margins, and invoke the Gemini AI to write fresh plain-language operational summaries.</li>
+        </ol>
+    </section>
+
+    <!-- Section 5: Settings -->
+    <section id="settings" class="bg-white rounded-xl border border-slate-200 p-6 sm:p-7 shadow-sm space-y-4">
+        <div class="flex items-center space-x-2 text-slate-900">
+            <i data-lucide="sliders" class="w-5 h-5 text-amber-600"></i>
+            <h2 class="text-xl font-bold">5. Updating Operational Thresholds</h2>
+        </div>
+        <p class="text-base text-slate-600 leading-relaxed">
+            Operations managers can change company benchmarks on the <strong class="text-slate-900 font-semibold">Settings</strong> page without editing code. Changes take effect across all store cards and the Scoreboard immediately.
+        </p>
+    </section>
+
+</div>
+{% endblock %}

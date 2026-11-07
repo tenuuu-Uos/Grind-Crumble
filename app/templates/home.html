@@ -1,27 +1,27 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="space-y-7">
 
     <!-- Top Bar -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-5">
         <div>
-            <div class="flex items-center space-x-2">
-                <h1 class="text-lg font-bold text-slate-900 tracking-tight">Store Locations ({{ stores|length }})</h1>
-                <a href="/stores/new" class="text-[11px] font-semibold text-slate-900 hover:text-amber-700 flex items-center space-x-1 border border-slate-300 rounded px-2 py-0.5 bg-white shadow-sm hover:border-slate-400 transition">
-                    <i data-lucide="plus" class="w-3 h-3 text-amber-600"></i>
+            <div class="flex items-center space-x-3">
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Store Locations ({{ stores|length }})</h1>
+                <a href="/stores/new" class="text-xs font-semibold text-slate-900 hover:text-amber-700 flex items-center space-x-1.5 border border-slate-300 rounded-lg px-2.5 py-1 bg-white shadow-sm hover:border-slate-400 transition">
+                    <i data-lucide="plus" class="w-3.5 h-3.5 text-amber-600"></i>
                     <span>Add Store</span>
                 </a>
             </div>
-            <p class="text-xs text-slate-500">Real-time store performance, profit margin trends, food waste, and peak rush staffing.</p>
+            <p class="text-sm text-slate-500 mt-1">Real-time store performance, profit margin trends, food waste, and peak rush staffing.</p>
         </div>
 
         <!-- Controls: Sort & Filter -->
-        <div class="flex flex-wrap items-center gap-2 text-xs">
+        <div class="flex flex-wrap items-center gap-3 text-sm">
             <!-- Sort dropdown -->
-            <div class="flex items-center space-x-1.5 bg-white border border-slate-200 rounded px-2 py-1 shadow-sm">
-                <span class="text-[11px] text-slate-400 font-medium">Sort:</span>
-                <select id="gridSort" onchange="sortStoreCards(this.value)" class="text-xs bg-transparent border-0 focus:outline-none text-slate-700 font-medium cursor-pointer">
+            <div class="flex items-center space-x-2 bg-white border border-slate-200 rounded-lg px-3 py-1.5 shadow-sm">
+                <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Sort:</span>
+                <select id="gridSort" onchange="sortStoreCards(this.value)" class="text-sm bg-transparent border-0 focus:outline-none text-slate-800 font-medium cursor-pointer">
                     <option value="id-asc">Store ID</option>
                     <option value="margin-desc">Margin (High &rarr; Low)</option>
                     <option value="margin-asc">Margin (Low &rarr; High)</option>
@@ -32,19 +32,74 @@
             </div>
 
             <!-- Filter Buttons -->
-            <div class="flex items-center space-x-1 text-xs">
-                <button onclick="filterStores('all')" id="btn-all" class="px-2.5 py-1 rounded font-medium bg-slate-900 text-white transition">All ({{ stores|length }})</button>
-                <button onclick="filterStores('red')" id="btn-red" class="px-2.5 py-1 rounded font-medium text-rose-700 bg-rose-50 border border-rose-200/70 hover:bg-rose-100 transition">Action ({{ red_count }})</button>
-                <button onclick="filterStores('amber')" id="btn-amber" class="px-2.5 py-1 rounded font-medium text-amber-700 bg-amber-50 border border-amber-200/70 hover:bg-amber-100 transition">Watch ({{ amber_count }})</button>
-                <button onclick="filterStores('green')" id="btn-green" class="px-2.5 py-1 rounded font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/70 hover:bg-emerald-100 transition">Optimal ({{ green_count }})</button>
+            <div class="flex items-center space-x-1.5 text-sm">
+                <button onclick="filterStores('all')" id="btn-all" class="px-3 py-1.5 rounded-lg font-semibold bg-slate-900 text-white transition">All ({{ stores|length }})</button>
+                <button onclick="filterStores('red')" id="btn-red" class="px-3 py-1.5 rounded-lg font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition">Action ({{ red_count }})</button>
+                <button onclick="filterStores('amber')" id="btn-amber" class="px-3 py-1.5 rounded-lg font-semibold text-amber-800 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition">Watch ({{ amber_count }})</button>
+                <button onclick="filterStores('green')" id="btn-green" class="px-3 py-1.5 rounded-lg font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition">Optimal ({{ green_count }})</button>
             </div>
         </div>
     </div>
 
+    <!-- Gemini AI Operational Q&A Chat Box -->
+    <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-700 flex items-center justify-center font-bold">
+                    <i data-lucide="sparkles" class="w-4 h-4 text-amber-600"></i>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <h2 class="text-base font-bold text-slate-900">Ask Gemini AI (Store Operations Q&amp;A)</h2>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold uppercase tracking-wider">Gemini Powered</span>
+                    </div>
+                    <p class="text-xs text-slate-500">Ask any free-form question about delivery profitability, store margins, food waste, footfall trends, or staffing.</p>
+                </div>
+            </div>
+            <a href="/settings" class="text-[11px] font-semibold text-slate-500 hover:text-slate-800 flex items-center space-x-1">
+                <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+                <span>API Settings</span>
+            </a>
+        </div>
+
+        <!-- Input Box -->
+        <form onsubmit="handleAskQuestion(event)" class="flex flex-col sm:flex-row gap-2">
+            <div class="relative flex-1">
+                <input type="text" id="chatQuestionInput" placeholder="Ask Gemini anything, e.g. Which stores lost money on delivery last month? or Why did Leeds Briggate profit drop?" 
+                       class="w-full px-4 py-2.5 pr-10 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-slate-900 bg-slate-50/50">
+            </div>
+            <button type="submit" id="btn-chat-submit" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-lg transition flex items-center justify-center space-x-2 shrink-0">
+                <i data-lucide="sparkles" class="w-4 h-4 text-amber-400" id="chat-send-icon"></i>
+                <span>Ask Gemini</span>
+            </button>
+        </form>
+
+        <!-- Suggested Prompt Chips -->
+        <div class="flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
+            <span class="text-slate-400 font-medium">Try asking:</span>
+            <button onclick="setAndAskQuestion('Which stores lost money on delivery last month?')" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 transition text-slate-700">“Which stores lost money on delivery last month?”</button>
+            <button onclick="setAndAskQuestion('Why did Leeds Briggate profit drop?')" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 transition text-slate-700">“Why did Leeds Briggate profit drop?”</button>
+            <button onclick="setAndAskQuestion('Why is Hull Paragon waste so high?')" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 transition text-slate-700">“Why is Hull Paragon waste so high?”</button>
+            <button onclick="setAndAskQuestion('What caused the app sales drop in March?')" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 transition text-slate-700">“What caused the app sales drop in March?”</button>
+        </div>
+
+        <!-- Answer Card -->
+        <div id="chatAnswerContainer" class="hidden p-4 rounded-lg bg-amber-50/60 border border-amber-200/90 text-sm leading-relaxed text-slate-800 space-y-2">
+            <div class="flex items-center justify-between text-xs font-bold text-amber-900 uppercase tracking-wider">
+                <div class="flex items-center space-x-1.5">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-600"></i>
+                    <span>Gemini AI Answer:</span>
+                </div>
+                <span id="chatEngineBadge" class="text-[10px] text-amber-800 bg-amber-200/60 px-2 py-0.5 rounded font-mono">Gemini AI</span>
+            </div>
+            <div id="chatAnswerText" class="text-slate-800 whitespace-pre-line text-sm"></div>
+        </div>
+    </div>
+
     <!-- Store Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="store-grid">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="store-grid">
         {% for s in stores %}
-        <a href="/store/{{ s.store_id }}" class="store-card block bg-white rounded-lg border border-slate-200 p-4 relative group hover:border-slate-400 transition" 
+        <a href="/store/{{ s.store_id }}" class="store-card block bg-white rounded-xl border border-slate-200 p-5 relative group hover:border-slate-400 transition shadow-sm hover:shadow-md" 
            data-status="{{ s.rag_status }}"
            data-id="{{ s.store_id }}"
            data-name="{{ s.store_name }}"
@@ -53,84 +108,84 @@
            data-sales="{{ s.total_sales_gbp }}">
             
             <!-- Store Title & Badge -->
-            <div class="flex items-start justify-between gap-2 mb-2">
+            <div class="flex items-start justify-between gap-3 mb-3">
                 <div>
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{{ s.store_id }} &bull; {{ s.format }}</span>
-                    <h2 class="text-sm font-bold text-slate-900 group-hover:text-amber-700 transition leading-snug">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">{{ s.store_id }} &bull; {{ s.format }}</span>
+                    <h2 class="text-lg font-bold text-slate-900 group-hover:text-amber-700 transition leading-snug mt-0.5">
                         {{ s.store_name }}
                     </h2>
-                    <span class="text-[11px] text-slate-500">{{ s.city }} &bull; {{ s.manager }}</span>
+                    <span class="text-xs text-slate-500 font-medium">{{ s.city }} &bull; Mgr: {{ s.manager }}</span>
                 </div>
 
                 {% if s.rag_status == 'red' %}
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold rag-badge-red shrink-0">Action</span>
+                <span class="px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wider rag-badge-red shrink-0">Action</span>
                 {% elif s.rag_status == 'amber' %}
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold rag-badge-amber shrink-0">Watch</span>
+                <span class="px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wider rag-badge-amber shrink-0">Watch</span>
                 {% else %}
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold rag-badge-green shrink-0">Optimal</span>
+                <span class="px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wider rag-badge-green shrink-0">Optimal</span>
                 {% endif %}
             </div>
 
             <!-- Plain-Language Operational Alert -->
-            <div class="mb-3 p-2 rounded text-[11px] font-medium leading-relaxed {% if s.rag_status == 'red' %}bg-rose-50/70 text-rose-900 border border-rose-100{% elif s.rag_status == 'amber' %}bg-amber-50/70 text-amber-900 border border-amber-100{% else %}bg-slate-50 text-slate-600 border border-slate-100{% endif %} flex items-start space-x-1.5">
-                <i data-lucide="{% if s.rag_status == 'red' %}alert-circle{% elif s.rag_status == 'amber' %}alert-triangle{% else %}check{% endif %}" class="w-3.5 h-3.5 mt-0.5 shrink-0 {% if s.rag_status == 'red' %}text-rose-600{% elif s.rag_status == 'amber' %}text-amber-600{% else %}text-emerald-600{% endif %}"></i>
-                <div>
+            <div class="mb-4 p-3 rounded-lg text-xs sm:text-sm font-medium leading-relaxed {% if s.rag_status == 'red' %}bg-rose-50 text-rose-950 border border-rose-200{% elif s.rag_status == 'amber' %}bg-amber-50 text-amber-950 border border-amber-200{% else %}bg-slate-50 text-slate-700 border border-slate-200/80{% endif %} flex items-start space-x-2">
+                <i data-lucide="{% if s.rag_status == 'red' %}alert-circle{% elif s.rag_status == 'amber' %}alert-triangle{% else %}check-circle-2{% endif %}" class="w-4 h-4 mt-0.5 shrink-0 {% if s.rag_status == 'red' %}text-rose-600{% elif s.rag_status == 'amber' %}text-amber-600{% else %}text-emerald-600{% endif %}"></i>
+                <div class="flex-1">
                     <span>{{ s.plain_alert }}</span>
                     {% if s.is_ai_generated %}
-                    <span class="inline-block ml-1 text-[9px] px-1 rounded bg-amber-100 text-amber-800 font-bold uppercase">Gemini AI</span>
+                    <span class="inline-block ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-amber-200/80 text-amber-900 font-bold uppercase tracking-wider">Gemini AI</span>
                     {% endif %}
                 </div>
             </div>
 
-            <!-- 4 Metrics Row -->
-            <div class="grid grid-cols-4 gap-2 pt-2 border-t border-slate-100 text-left">
+            <!-- 4 Metrics Row (Bigger, readable metrics) -->
+            <div class="grid grid-cols-4 gap-2 pt-3 border-t border-slate-100 text-left">
                 
                 <!-- Margin -->
                 <div>
-                    <div class="text-[10px] text-slate-400">
+                    <div class="text-xs text-slate-500 font-medium">
                         <span class="tooltip-wrap">Margin<span class="tooltip-box">Operating profit divided by revenue. Floor: &ge; {{ settings.margin_floor_pct }}%.</span></span>
                     </div>
-                    <div class="text-xs font-bold {% if s.margin_this_month < settings.margin_floor_pct %}text-rose-600{% else %}text-slate-900{% endif %}">
+                    <div class="text-base font-bold mt-0.5 {% if s.margin_this_month < settings.margin_floor_pct %}text-rose-600{% else %}text-slate-900{% endif %}">
                         {{ s.margin_this_month }}%
                     </div>
-                    <div class="text-[9px] text-slate-400">
+                    <div class="text-xs text-slate-400">
                         ({% if s.margin_delta > 0 %}+{% endif %}{{ s.margin_delta }}%)
                     </div>
                 </div>
 
                 <!-- Waste % -->
                 <div>
-                    <div class="text-[10px] text-slate-400">
+                    <div class="text-xs text-slate-500 font-medium">
                         <span class="tooltip-wrap">Waste<span class="tooltip-box">Cost of food discarded divided by food sales. Limit: &le; {{ settings.waste_benchmark_pct }}%.</span></span>
                     </div>
-                    <div class="text-xs font-bold {% if s.waste_pct > settings.waste_benchmark_pct %}text-rose-600{% else %}text-emerald-700{% endif %}">
+                    <div class="text-base font-bold mt-0.5 {% if s.waste_pct > settings.waste_benchmark_pct %}text-rose-600{% else %}text-emerald-700{% endif %}">
                         {{ s.waste_pct }}%
                     </div>
-                    <div class="text-[9px] text-slate-400">
+                    <div class="text-xs text-slate-400">
                         target &le;{{ settings.waste_benchmark_pct }}%
                     </div>
                 </div>
 
                 <!-- Delivery % -->
                 <div>
-                    <div class="text-[10px] text-slate-400">
+                    <div class="text-xs text-slate-500 font-medium">
                         <span class="tooltip-wrap">Delivery<span class="tooltip-box">Share of store sales coming from Dashly and RushEats delivery apps.</span></span>
                     </div>
-                    <div class="text-xs font-bold text-slate-900">
+                    <div class="text-base font-bold mt-0.5 text-slate-900">
                         {{ s.delivery_share_pct }}%
                     </div>
-                    <div class="text-[9px] text-slate-400">of sales</div>
+                    <div class="text-xs text-slate-400">of sales</div>
                 </div>
 
                 <!-- Staffing Gap -->
                 <div>
-                    <div class="text-[10px] text-slate-400">
+                    <div class="text-xs text-slate-500 font-medium">
                         <span class="tooltip-wrap">Peak Gap<span class="tooltip-box">Difference between active counter baristas and baristas needed during 11am-2pm rush. Negative = deficit.</span></span>
                     </div>
-                    <div class="text-xs font-bold {% if s.peak_staff_gap <= -1.5 %}text-rose-600{% elif s.peak_staff_gap < 0 %}text-amber-700{% else %}text-emerald-700{% endif %}">
+                    <div class="text-base font-bold mt-0.5 {% if s.peak_staff_gap <= -1.5 %}text-rose-600{% elif s.peak_staff_gap < 0 %}text-amber-700{% else %}text-emerald-700{% endif %}">
                         {% if s.peak_staff_gap < 0 %}{{ s.peak_staff_gap }}{% else %}0{% endif %}
                     </div>
-                    <div class="text-[9px] text-slate-400">{{ s.peak_staff_on_shift }} on shift</div>
+                    <div class="text-xs text-slate-400">{{ s.peak_staff_on_shift }} on shift</div>
                 </div>
 
             </div>
@@ -150,11 +205,11 @@
         activeFilter = status;
         ['all', 'red', 'amber', 'green'].forEach(s => {
             const btn = document.getElementById(`btn-${s}`);
-            if (btn) btn.className = 'px-2.5 py-1 rounded font-medium text-slate-600 hover:text-slate-900 transition';
+            if (btn) btn.className = 'px-3 py-1.5 rounded-lg font-semibold text-slate-600 hover:text-slate-900 transition';
         });
         const activeBtn = document.getElementById(`btn-${status}`);
         if (activeBtn) {
-            activeBtn.className = 'px-2.5 py-1 rounded font-medium bg-slate-900 text-white transition';
+            activeBtn.className = 'px-3 py-1.5 rounded-lg font-semibold bg-slate-900 text-white transition';
         }
         applyFilter();
     }
@@ -187,6 +242,49 @@
 
         cards.forEach(c => grid.appendChild(c));
         applyFilter();
+    }
+
+    // Ask-a-Question Chat Handler
+    async function handleAskQuestion(e) {
+        if (e) e.preventDefault();
+        const input = document.getElementById('chatQuestionInput');
+        const question = input.value.trim();
+        if (!question) return;
+
+        const container = document.getElementById('chatAnswerContainer');
+        const answerText = document.getElementById('chatAnswerText');
+        const submitBtn = document.getElementById('btn-chat-submit');
+        const icon = document.getElementById('chat-send-icon');
+
+        container.classList.remove('hidden');
+        answerText.innerHTML = '<span class="text-slate-500 italic flex items-center space-x-1.5"><i data-lucide="sparkles" class="w-4 h-4 text-amber-500 animate-spin"></i><span>Gemini AI is analyzing operational data...</span></span>';
+        if (submitBtn) submitBtn.disabled = true;
+
+        try {
+            const resp = await fetch('/api/ask', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question: question })
+            });
+            const data = await resp.json();
+            const badge = document.getElementById('chatEngineBadge');
+            if (badge) {
+                badge.innerText = data.engine === 'gemini-ai' ? 'Gemini 1.5 Flash' : 'Grounded AI Engine';
+            }
+            answerText.innerHTML = data.answer.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        } catch (err) {
+            answerText.innerText = "Error querying store data: " + err;
+        } finally {
+            if (submitBtn) submitBtn.disabled = false;
+        }
+    }
+
+    function setAndAskQuestion(q) {
+        const input = document.getElementById('chatQuestionInput');
+        if (input) {
+            input.value = q;
+            handleAskQuestion();
+        }
     }
 </script>
 {% endblock %}

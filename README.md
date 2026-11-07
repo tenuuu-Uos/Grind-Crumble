@@ -45,7 +45,46 @@ Open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser.
 
 ---
 
-## 2. Minimalist Store-First Design
+## 2. Project File Structure
+
+```text
+Grind-Crumble/
+├── app/
+│   ├── static/
+│   │   ├── css/
+│   │   │   └── style.css            # Custom typography & tooltip styles
+│   │   └── sample/
+│   │       └── test_monthly_pnl_july2026.csv   # Sample upload data for testing
+│   ├── templates/
+│   │   ├── base.html                # Main layout, nav bar, and footer
+│   │   ├── home.html                # Store grid cards with quick sort/filter
+│   │   ├── store_detail.html        # P&L waterfall, waste trend, channel mix
+│   │   ├── network.html             # Sortable comparative network scoreboard
+│   │   ├── new_store.html           # Add new store location form
+│   │   ├── instructions.html        # Staff & store operations guide
+│   │   ├── upload.html              # CSV upload with Gemini AI cleansing
+│   │   └── settings.html            # Alert thresholds & API key settings
+│   ├── config.py                    # App configuration & settings loader
+│   ├── data_manager.py              # Data cleansing, CSV parsers & Gemini client
+│   └── main.py                      # FastAPI application routes
+├── data/
+│   ├── stores.csv                   # Store registry (ID, location, format, rent)
+│   ├── starter_store_monthly_pnl.csv# Monthly store P&L records
+│   ├── test_monthly_pnl_july2026.csv# Sample test batch with S13 Liverpool
+│   └── ai_store_insights.json       # Persisted AI-generated action alerts
+├── tests/
+│   └── test_store_monitor.py        # 12 automated unit & route tests
+├── .gitignore                       # Clean Git exclusion rules
+├── Home.py                          # Startup entrypoint (python Home.py)
+├── run.py                           # Alternative startup entrypoint
+├── requirements.txt                 # Pip dependencies
+├── settings.json                    # Persisted operational thresholds
+└── README.md                        # Documentation & Ops Handover Guide
+```
+
+---
+
+## 3. Minimalist Store-First Design
 
 1. **Home Screen (`/`)**:
    - 12 Store Cards Grid.
@@ -70,8 +109,14 @@ Open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser.
    - Easily edit operational alert thresholds (Waste limit, Margin floor, Occupancy ceiling).
    - Enter your `gemini_api_key`.
    - Settings persist in `settings.json` without modifying any code.
-5. **Network Overview (`/network`)**:
-   - Minimalist comparative ranking table of all 12 locations.
+5. **Network Scoreboard (`/network`)**:
+   - Comparative ranking table with interactive column sorting across all locations.
+6. **Ask Gemini AI Operational Q&A (`/`)**:
+   - Natural language AI assistant powered by Google Gemini (with comprehensive chain datasets and operational records) to answer any question given by managers (delivery loss breakdown, waste analysis, cannibalisation, app shock, or staffing).
+7. **“Explain This Store” Operational Diagnosis (`/store/{store_id}`)**:
+   - One-click diagnosis button on each store's page that explains margin shifts, waste multiples, and delivery impacts in plain English with likely root causes and recommended manager actions.
+8. **Staff & Operations Guide (`/instructions`)**:
+   - Staff user manual with daily 3-step routines, RAG badge definitions, metric calculation guides, and upload tutorials.
 
 ---
 

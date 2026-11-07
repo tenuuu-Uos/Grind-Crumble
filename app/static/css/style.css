@@ -6,7 +6,7 @@ body {
     letter-spacing: -0.01em;
 }
 
-/* Tooltip Hover */
+/* Tooltip Hover - larger, legible typography */
 .tooltip-wrap {
     position: relative;
     display: inline-flex;
@@ -22,18 +22,18 @@ body {
     bottom: 130%;
     left: 50%;
     transform: translateX(-50%);
-    width: 220px;
+    width: 250px;
     background-color: #0f172a;
     color: #f8fafc;
     text-align: left;
-    font-size: 11px;
-    line-height: 1.4;
-    padding: 7px 9px;
-    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 8px 12px;
+    border-radius: 8px;
     z-index: 50;
     transition: opacity 0.15s ease-in-out;
     pointer-events: none;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.2);
 }
 
 .tooltip-wrap .tooltip-box::after {
@@ -41,8 +41,8 @@ body {
     position: absolute;
     top: 100%;
     left: 50%;
-    margin-left: -4px;
-    border-width: 4px;
+    margin-left: -5px;
+    border-width: 5px;
     border-style: solid;
     border-color: #0f172a transparent transparent transparent;
 }

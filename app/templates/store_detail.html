@@ -5,78 +5,85 @@
 
     <!-- Top Breadcrumb & Navigation -->
     <div class="flex items-center justify-between">
-        <a href="/" class="text-xs font-semibold text-slate-500 hover:text-slate-900 flex items-center space-x-1">
+        <a href="/" class="text-sm font-semibold text-slate-600 hover:text-slate-900 flex items-center space-x-1.5 transition">
             <i data-lucide="arrow-left" class="w-4 h-4"></i>
-            <span>Back to 12 Store Grid</span>
+            <span>&larr; Back to Stores Grid</span>
         </a>
-        <div class="text-xs text-slate-400">
-            Store ID: <span class="font-bold text-slate-700">{{ card.store_id }}</span>
+        <div class="text-sm text-slate-500 font-medium">
+            Store ID: <span class="font-bold text-slate-900 font-mono">{{ card.store_id }}</span>
         </div>
     </div>
 
     <!-- Store Profile Header -->
-    <div class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="bg-white rounded-xl p-6 sm:p-7 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center space-x-2.5">
                 <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">{{ card.format }} Format &bull; {{ card.city }}</span>
                 {% if card.rag_status == 'red' %}
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider rag-badge-red">Needs Action</span>
+                <span class="px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wider rag-badge-red">Action</span>
                 {% elif card.rag_status == 'amber' %}
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider rag-badge-amber">Watchlist</span>
+                <span class="px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wider rag-badge-amber">Watch</span>
                 {% else %}
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider rag-badge-green">Healthy</span>
+                <span class="px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wider rag-badge-green">Optimal</span>
                 {% endif %}
             </div>
-            <h1 class="text-2xl font-black text-slate-900 mt-1">{{ card.store_name }}</h1>
-            <p class="text-xs text-slate-500 mt-0.5">
-                Store Manager: <strong>{{ card.manager }}</strong> &bull; Monthly Sales: <strong>£{{ card.total_sales_gbp|num }}</strong> &bull; Net Profit: <strong>£{{ card.store_profit_gbp|num }}</strong>
+            <h1 class="text-3xl font-extrabold text-slate-900 mt-1 tracking-tight">{{ card.store_name }}</h1>
+            <p class="text-sm text-slate-600 mt-1.5">
+                Store Manager: <strong class="text-slate-900">{{ card.manager }}</strong> &bull; Monthly Sales: <strong class="text-slate-900">£{{ card.total_sales_gbp|num }}</strong> &bull; Net Profit: <strong class="text-slate-900">£{{ card.store_profit_gbp|num }}</strong>
             </p>
         </div>
 
         <!-- Store Metric Quick Badges -->
-        <div class="flex flex-wrap items-center gap-2 text-xs">
-            <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
-                <span class="text-[11px] text-slate-500 block">
+        <div class="flex flex-wrap items-center gap-2.5 text-sm">
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 min-w-[100px]">
+                <span class="text-xs text-slate-500 font-medium block">
                     <span class="tooltip-wrap">Store Margin<span class="tooltip-box">Operating profit divided by total net revenue.</span></span>
                 </span>
-                <span class="text-base font-bold {% if card.margin_this_month < settings.margin_floor_pct %}text-rose-600{% else %}text-slate-900{% endif %}">
+                <span class="text-xl font-bold mt-0.5 block {% if card.margin_this_month < settings.margin_floor_pct %}text-rose-600{% else %}text-slate-900{% endif %}">
                     {{ card.margin_this_month }}%
                 </span>
             </div>
-            <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
-                <span class="text-[11px] text-slate-500 block">
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 min-w-[100px]">
+                <span class="text-xs text-slate-500 font-medium block">
                     <span class="tooltip-wrap">Waste Rate<span class="tooltip-box">Cost of food discarded divided by food revenue.</span></span>
                 </span>
-                <span class="text-base font-bold {% if card.waste_pct > settings.waste_benchmark_pct %}text-rose-600{% else %}text-emerald-700{% endif %}">
+                <span class="text-xl font-bold mt-0.5 block {% if card.waste_pct > settings.waste_benchmark_pct %}text-rose-600{% else %}text-emerald-700{% endif %}">
                     {{ card.waste_pct }}%
                 </span>
             </div>
-            <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
-                <span class="text-[11px] text-slate-500 block">
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 min-w-[100px]">
+                <span class="text-xs text-slate-500 font-medium block">
                     <span class="tooltip-wrap">Occupancy %<span class="tooltip-box">Rent + Rates as a share of sales. Alert if &gt; 25%.</span></span>
                 </span>
-                <span class="text-base font-bold {% if card.occupancy_pct > settings.occupancy_ceiling_pct %}text-rose-600{% else %}text-slate-900{% endif %}">
+                <span class="text-xl font-bold mt-0.5 block {% if card.occupancy_pct > settings.occupancy_ceiling_pct %}text-rose-600{% else %}text-slate-900{% endif %}">
                     {{ card.occupancy_pct }}%
                 </span>
             </div>
         </div>
     </div>
 
-    <!-- Plain-Language Operational Alerts Box -->
-    <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center mb-2">
-            <i data-lucide="bell-ring" class="w-4 h-4 text-amber-600 mr-1.5"></i>
-            <span>Plain-Language Operational Alerts (Ops Action Points)</span>
-        </h3>
-        <div class="space-y-2 text-xs font-medium">
-            <div class="p-3 rounded-lg {% if card.rag_status == 'red' %}bg-rose-50 border border-rose-200 text-rose-950{% elif card.rag_status == 'amber' %}bg-amber-50 border border-amber-200 text-amber-950{% else %}bg-emerald-50 border border-emerald-200 text-emerald-950{% endif %} flex items-start space-x-2">
-                <i data-lucide="{% if card.rag_status == 'red' %}alert-circle{% else %}info{% endif %}" class="w-4 h-4 shrink-0 mt-0.5 {% if card.rag_status == 'red' %}text-rose-600{% else %}text-amber-600{% endif %}"></i>
-                <div class="space-y-1">
-                    <p class="font-bold">{{ card.plain_alert }}</p>
-                    {% for a in card.alerts_list %}
-                    <p class="text-slate-700">&bull; {{ a }}</p>
-                    {% endfor %}
+    <!-- "Explain this Store" Plain-English Summary Feature -->
+    <div class="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent rounded-xl p-6 border border-amber-200/80 shadow-sm space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-8 h-8 rounded-lg bg-amber-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i>
                 </div>
+                <div>
+                    <h3 class="text-base font-bold text-slate-900">“Explain This Store” Operational Diagnosis</h3>
+                    <p class="text-xs text-slate-600">Automated plain-English briefing analyzing margin, waste, delivery, and staffing cause-and-effect.</p>
+                </div>
+            </div>
+            <button onclick="generateStoreExplanation('{{ card.store_id }}')" id="btn-explain" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg transition flex items-center space-x-2 self-start sm:self-center shadow-sm">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-amber-400" id="explain-icon"></i>
+                <span>Explain Store Summary</span>
+            </button>
+        </div>
+
+        <!-- Explanation Output Card -->
+        <div id="explanation-box" class="p-4 rounded-lg bg-white border border-amber-200/90 text-sm leading-relaxed text-slate-800 shadow-sm">
+            <div id="explanation-text" class="text-slate-700">
+                <span class="font-bold text-slate-900">{{ card.store_name }}:</span> {{ card.plain_alert }} Click "Explain Store Summary" above for an in-depth operational diagnosis and consultation plan.
             </div>
         </div>
     </div>
@@ -287,6 +294,30 @@
                 }
             }
         });
+    }
+    // Explain Store Feature
+    async function generateStoreExplanation(storeId) {
+        const btn = document.getElementById('btn-explain');
+        const icon = document.getElementById('explain-icon');
+        const textBox = document.getElementById('explanation-text');
+
+        if (icon) icon.classList.add('animate-spin');
+        if (btn) btn.disabled = true;
+
+        try {
+            const resp = await fetch(`/api/explain-store/${storeId}`);
+            const data = await resp.json();
+            if (data.summary) {
+                textBox.innerHTML = `<span class="font-bold text-slate-900">Summary:</span> ${data.summary}`;
+            } else if (data.error) {
+                textBox.innerText = data.error;
+            }
+        } catch (err) {
+            textBox.innerText = "Error loading store explanation: " + err;
+        } finally {
+            if (icon) icon.classList.remove('animate-spin');
+            if (btn) btn.disabled = false;
+        }
     }
 </script>
 {% endblock %}
